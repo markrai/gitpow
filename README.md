@@ -1,4 +1,10 @@
-# GitPow! an open-source cross-platform git client
+<img width="500" height="500" alt="powpow" src="https://github.com/user-attachments/assets/78e5984f-b076-49ff-b04a-78ed7292ab0a" />
+<img width="500" height="220" alt="image" src="https://github.com/user-attachments/assets/5dfd6463-5af7-405c-992d-d2e61d330936" />
+
+
+# Why?
+
+This is a passion project of mine where I wanted a cross-platform git client, which would tackle some of the pain-points of existing solutions. Namely, conditional strategies to handle larger repositories (i.e. Kubernetes, Linux Kernes, etc.) More importantly, I wanted to implement certain ergonomics which I didn't find in other clients, such as: showing image previews to visualize what changed (if an image was replaced, for example), grouping commits by month/year, giving the user more customization over how they wished to see dates (human-readable, versus timestamps), or how many "commits ago" a file was introduced. As a fun challenge, I wanted to provide the user the option to visualize the repo as a vertical, or horizontal graph, which could be navigated (and zoomed in/out of) on a touch-screen. This is a work in progress, and I welcome any suggestions, or better yet - contributions to the project! 😊
 
 
 ## Prerequisites

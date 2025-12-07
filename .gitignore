@@ -2,7 +2,7 @@
 /target
 /target-test
 **/target/
-Cargo.lock  # For binaries, you might want to keep this, but it's often ignored
+# Cargo.lock is committed for binary applications (like this Tauri app) to ensure reproducible builds
 
 # WebAssembly build outputs
 **/pkg/

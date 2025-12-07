@@ -1399,7 +1399,7 @@ dependencies = [
 
 [[package]]
 name = "gitpow-rust"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -1423,7 +1423,7 @@ dependencies = [
 
 [[package]]
 name = "gitpow-tauri"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64 0.21.7",

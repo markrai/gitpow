@@ -73,8 +73,8 @@ jobs:
         with:
           name: windows-binaries
           path: |
-            src-tauri/target/release/*.exe
-            src-tauri/target/release/bundle/msi/*.msi
+            target/release/gitpow-tauri.exe
+            target/release/bundle/msi/*.msi
           retention-days: 30
 
   build-linux:
@@ -143,8 +143,8 @@ jobs:
         with:
           name: linux-binaries
           path: |
-            src-tauri/target/release/gitpow-tauri
-            src-tauri/target/release/bundle/deb/*.deb
+            target/release/gitpow-tauri
+            target/release/bundle/deb/*.deb
           retention-days: 30
 
   build-macos:
@@ -200,7 +200,7 @@ jobs:
         with:
           name: macos-binaries
           path: |
-            src-tauri/target/release/bundle/dmg/*.dmg
+            target/release/bundle/dmg/*.dmg
           retention-days: 30
 
   release:

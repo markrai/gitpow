@@ -29,7 +29,7 @@ body {
   border-bottom: 1px solid #1f2937;
   align-items: center;
   position: relative;
-  z-index: 10;
+  z-index: 10001;
 }
 
 /* Secondary toolbar for git operations */

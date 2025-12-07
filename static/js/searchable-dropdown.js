@@ -22,7 +22,7 @@ function createSearchableDropdown(selectElement, options = {}) {
   const container = document.createElement("div");
   container.style.position = "relative";
   container.style.display = "inline-block";
-  container.style.zIndex = "10000"; // Ensure container is above toolbar-secondary
+  container.style.zIndex = "10002"; // Ensure container is above all content
   const computedStyle = window.getComputedStyle(selectElement);
   // Preserve width from original select, but ensure it's not too constrained
   const originalWidth = computedStyle.width;
@@ -74,7 +74,7 @@ function createSearchableDropdown(selectElement, options = {}) {
     border-radius: 6px;
     max-height: ${maxHeight};
     overflow: hidden;
-    z-index: 10000;
+    z-index: 10002;
     display: none;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     flex-direction: column;

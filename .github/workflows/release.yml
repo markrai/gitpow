@@ -207,6 +207,7 @@ jobs:
     name: Create Release
     needs: [build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
+    if: always()
     permissions:
       contents: write
     
@@ -220,8 +221,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ./artifacts
+          if-no-files-found: ignore
+
+      - name: Check for artifacts
+        id: check-artifacts
+        run: |
+          if [ -d "artifacts" ] && [ "$(find artifacts -type f \( -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.msi" -o -name "*.dmg" \) | wc -l)" -gt 0 ]; then
+            echo "has_artifacts=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_artifacts=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create checksums
+        if: steps.check-artifacts.outputs.has_artifacts == 'true'
         run: |
           cd artifacts
           find . -type f \( -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.msi" -o -name "*.dmg" \) | while read file; do
@@ -249,6 +261,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create or Update Release
+        if: steps.check-artifacts.outputs.has_artifacts == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag.outputs.tag }}

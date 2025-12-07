@@ -7,6 +7,13 @@ resolver = "2"
 name = "gitpow-rust"
 version = "0.1.1"
 edition = "2021"
+authors = ["Mark Rai"]
+description = "A cross-platform git client with advanced visualization and ergonomics"
+license = "GPL-3.0"
+repository = "https://github.com/markrai/gitpow"
+homepage = "https://github.com/markrai/gitpow"
+keywords = ["git", "version-control", "client", "gui"]
+categories = ["development-tools", "command-line-utilities"]
 
 [lib]
 name = "gitpow_rust"

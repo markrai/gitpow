@@ -65,8 +65,30 @@ jobs:
           }
           Copy-Item -Path "graph-wasm\pkg\*" -Destination $destPath -Recurse -Force
 
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ github.event.inputs.version }}" -replace '^v', ''
+          } else {
+            $version = "${{ github.ref_name }}" -replace '^v', ''
+          }
+          Write-Host "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build gitpow-rust binary
+        run: cargo build --release --bin gitpow-rust
+
       - name: Build Tauri application
         run: cargo tauri build
+
+      - name: Prepare cargo-binstall binary
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $target = "x86_64-pc-windows-msvc"
+          $binName = "gitpow-rust-${version}-${target}.exe"
+          Copy-Item -Path "target\release\gitpow-rust.exe" -Destination $binName
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -75,6 +97,7 @@ jobs:
           path: |
             target/release/gitpow-tauri.exe
             target/release/bundle/msi/*.msi
+            gitpow-rust-*.exe
           retention-days: 30
 
   build-linux:
@@ -135,8 +158,32 @@ jobs:
           mkdir -p static/graph-wasm/pkg
           cp -r graph-wasm/pkg/* static/graph-wasm/pkg/
 
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          VERSION="${VERSION#v}"  # Remove 'v' prefix if present
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build gitpow-rust binary
+        run: cargo build --release --bin gitpow-rust
+
       - name: Build Tauri application
         run: cargo tauri build
+
+      - name: Prepare cargo-binstall binary
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TARGET="x86_64-unknown-linux-gnu"
+          BIN_NAME="gitpow-rust-${VERSION}-${TARGET}"
+          cp target/release/gitpow-rust "$BIN_NAME"
+          chmod +x "$BIN_NAME"
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -145,6 +192,7 @@ jobs:
           path: |
             target/release/gitpow-tauri
             target/release/bundle/deb/*.deb
+            gitpow-rust-*
           retention-days: 30
 
   build-macos:
@@ -192,8 +240,38 @@ jobs:
           mkdir -p static/graph-wasm/pkg
           cp -r graph-wasm/pkg/* static/graph-wasm/pkg/
 
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          VERSION="${VERSION#v}"  # Remove 'v' prefix if present
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build gitpow-rust binary
+        run: cargo build --release --bin gitpow-rust
+
       - name: Build Tauri application
         run: cargo tauri build
+
+      - name: Prepare cargo-binstall binary
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          # Detect architecture
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "arm64" ]; then
+            TARGET="aarch64-apple-darwin"
+          else
+            TARGET="x86_64-apple-darwin"
+          fi
+          BIN_NAME="gitpow-rust-${VERSION}-${TARGET}"
+          cp target/release/gitpow-rust "$BIN_NAME"
+          chmod +x "$BIN_NAME"
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -201,6 +279,7 @@ jobs:
           name: macos-binaries
           path: |
             target/release/bundle/dmg/*.dmg
+            gitpow-rust-*
           retention-days: 30
 
   release:
@@ -226,7 +305,7 @@ jobs:
       - name: Check for artifacts
         id: check-artifacts
         run: |
-          if [ -d "artifacts" ] && [ "$(find artifacts -type f \( -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.msi" -o -name "*.dmg" \) | wc -l)" -gt 0 ]; then
+          if [ -d "artifacts" ] && [ "$(find artifacts -type f \( -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.msi" -o -name "*.dmg" -o -name "gitpow-rust-*" \) ! -name "*.sha256" | wc -l)" -gt 0 ]; then
             echo "has_artifacts=true" >> $GITHUB_OUTPUT
           else
             echo "has_artifacts=false" >> $GITHUB_OUTPUT
@@ -236,7 +315,7 @@ jobs:
         if: steps.check-artifacts.outputs.has_artifacts == 'true'
         run: |
           cd artifacts
-          find . -type f \( -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.msi" -o -name "*.dmg" \) | while read file; do
+          find . -type f \( -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.msi" -o -name "*.dmg" -o -name "gitpow-rust-*" \) ! -name "*.sha256" | while read file; do
             if [ -f "$file" ]; then
               sha256sum "$file" > "${file}.sha256"
             fi

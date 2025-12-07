@@ -65,20 +65,16 @@ function createSearchableDropdown(selectElement, options = {}) {
   // Create dropdown list with search box
   const dropdown = document.createElement("div");
   dropdown.style.cssText = `
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 4px;
+    position: fixed;
     background: rgba(15, 23, 42, 0.98);
     border: 1px solid #374151;
     border-radius: 6px;
     max-height: ${maxHeight};
     overflow: hidden;
-    z-index: 10002;
+    z-index: 10003;
     display: none;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     flex-direction: column;
-    min-width: 100%;
     width: max-content;
     max-width: 400px;
   `;
@@ -222,6 +218,16 @@ function createSearchableDropdown(selectElement, options = {}) {
   function showDropdown() {
     searchInput.value = "";
     renderOptions("");
+    
+    // Calculate position using fixed positioning to ensure it's above all content
+    // Fixed positioning is relative to viewport, so use getBoundingClientRect directly
+    const rect = button.getBoundingClientRect();
+    dropdown.style.position = "fixed";
+    dropdown.style.top = `${rect.bottom + 4}px`;
+    dropdown.style.left = `${rect.left}px`;
+    dropdown.style.width = `${rect.width}px`;
+    dropdown.style.minWidth = `${rect.width}px`;
+    
     dropdown.style.display = "flex";
     setTimeout(() => searchInput.focus(), 10);
   }
@@ -291,21 +297,36 @@ function createSearchableDropdown(selectElement, options = {}) {
   // Use capture phase to ensure we catch all clicks before they bubble
   const handleClickOutside = (e) => {
     if (!container.contains(e.target) && !dropdown.contains(e.target)) {
-      dropdown.style.display = "none";
-      searchInput.value = "";
+      hideDropdown(true);
     }
   };
   document.addEventListener("click", handleClickOutside, true);
   
+  // Also close on window scroll/resize to prevent misalignment
+  const handleWindowChange = () => {
+    if (dropdown.style.display !== "none" && dropdown.style.display !== "") {
+      hideDropdown(true);
+    }
+  };
+  window.addEventListener("scroll", handleWindowChange, true);
+  window.addEventListener("resize", handleWindowChange);
+  
   // Store cleanup function for potential future use
   container._cleanupClickOutside = () => {
     document.removeEventListener("click", handleClickOutside, true);
+    window.removeEventListener("scroll", handleWindowChange, true);
+    window.removeEventListener("resize", handleWindowChange);
+    // Remove dropdown from DOM when cleaning up
+    if (dropdown.parentNode) {
+      dropdown.parentNode.removeChild(dropdown);
+    }
   };
 
   // Replace select with container
   selectElement.parentNode.insertBefore(container, selectElement);
   container.appendChild(button);
-  container.appendChild(dropdown);
+  // Append dropdown to body for better stacking context control
+  document.body.appendChild(dropdown);
   selectElement.style.display = "none";
 
   // Initialize

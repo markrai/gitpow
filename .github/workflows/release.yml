@@ -1,0 +1,259 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --locked
+
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Build WebAssembly module
+        run: |
+          cd graph-wasm
+          wasm-pack build --target web
+          cd ..
+
+      - name: Copy WASM files to static directory
+        run: |
+          if not exist "static\graph-wasm\pkg" mkdir "static\graph-wasm\pkg"
+          xcopy /Y /I "graph-wasm\pkg\*" "static\graph-wasm\pkg\"
+
+      - name: Build Tauri application
+        run: cargo tauri build
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binaries
+          path: |
+            src-tauri/target/release/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+          retention-days: 30
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --locked
+
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Build WebAssembly module
+        run: |
+          cd graph-wasm
+          wasm-pack build --target web
+          cd ..
+
+      - name: Copy WASM files to static directory
+        run: |
+          mkdir -p static/graph-wasm/pkg
+          cp -r graph-wasm/pkg/* static/graph-wasm/pkg/
+
+      - name: Build Tauri application
+        run: cargo tauri build
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binaries
+          path: |
+            src-tauri/target/release/gitpow
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/deb/*.deb
+          retention-days: 30
+
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --locked
+
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install Node.js dependencies
+        run: npm install
+
+      - name: Build WebAssembly module
+        run: |
+          cd graph-wasm
+          wasm-pack build --target web
+          cd ..
+
+      - name: Copy WASM files to static directory
+        run: |
+          mkdir -p static/graph-wasm/pkg
+          cp -r graph-wasm/pkg/* static/graph-wasm/pkg/
+
+      - name: Build Tauri application
+        run: cargo tauri build
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-binaries
+          path: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+          retention-days: 30
+
+  release:
+    name: Create Release
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Create checksums
+        run: |
+          cd artifacts
+          find . -type f \( -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.msi" -o -name "*.dmg" \) | while read file; do
+            if [ -f "$file" ]; then
+              sha256sum "$file" > "${file}.sha256"
+            fi
+          done
+
+      - name: Determine tag name
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get release notes
+        id: notes
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          NOTES=$(git tag -l --format='%(contents)' "$TAG" 2>/dev/null || echo "Release $TAG")
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Release ${{ steps.tag.outputs.tag }}
+          body: ${{ steps.notes.outputs.notes }}
+          files: |
+            artifacts/**/*
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          fail_on_unmatched_files: false
+          token: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+

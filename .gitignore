@@ -77,3 +77,4 @@ coverage/
 
 # Test artifacts
 test-results/
+.claude

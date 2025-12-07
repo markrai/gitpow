@@ -59,10 +59,11 @@ jobs:
       - name: Copy WASM files to static directory
         shell: pwsh
         run: |
-          if (-not (Test-Path "static\graph-wasm\pkg")) {
-            New-Item -ItemType Directory -Path "static\graph-wasm\pkg" -Force
+          $destPath = "static\graph-wasm\pkg"
+          if (-not (Test-Path $destPath)) {
+            New-Item -ItemType Directory -Path $destPath -Force | Out-Null
           }
-          Copy-Item -Path "graph-wasm\pkg\*" -Destination "static\graph-wasm\pkg\" -Recurse -Force
+          Copy-Item -Path "graph-wasm\pkg\*" -Destination $destPath -Recurse -Force
 
       - name: Build Tauri application
         run: cargo tauri build
@@ -143,7 +144,6 @@ jobs:
           name: linux-binaries
           path: |
             src-tauri/target/release/gitpow
-            src-tauri/target/release/bundle/appimage/*.AppImage
             src-tauri/target/release/bundle/deb/*.deb
           retention-days: 30
 

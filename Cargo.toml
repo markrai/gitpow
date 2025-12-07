@@ -5,7 +5,7 @@ resolver = "2"
 
 [package]
 name = "gitpow-rust"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Mark Rai"]
 description = "A cross-platform git client with advanced visualization and ergonomics"

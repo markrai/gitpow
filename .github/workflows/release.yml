@@ -57,9 +57,12 @@ jobs:
           cd ..
 
       - name: Copy WASM files to static directory
+        shell: pwsh
         run: |
-          if not exist "static\graph-wasm\pkg" mkdir "static\graph-wasm\pkg"
-          xcopy /Y /I "graph-wasm\pkg\*" "static\graph-wasm\pkg\"
+          if (-not (Test-Path "static\graph-wasm\pkg")) {
+            New-Item -ItemType Directory -Path "static\graph-wasm\pkg" -Force
+          }
+          Copy-Item -Path "graph-wasm\pkg\*" -Destination "static\graph-wasm\pkg\" -Recurse -Force
 
       - name: Build Tauri application
         run: cargo tauri build
@@ -126,6 +129,7 @@ jobs:
           cd ..
 
       - name: Copy WASM files to static directory
+        shell: bash
         run: |
           mkdir -p static/graph-wasm/pkg
           cp -r graph-wasm/pkg/* static/graph-wasm/pkg/
@@ -183,6 +187,7 @@ jobs:
           cd ..
 
       - name: Copy WASM files to static directory
+        shell: bash
         run: |
           mkdir -p static/graph-wasm/pkg
           cp -r graph-wasm/pkg/* static/graph-wasm/pkg/

@@ -5,6 +5,8 @@ use axum::{
 };
 use std::path::Path as StdPath;
 use std::process::Command;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 
 use crate::config::Config;
 use crate::models::{ErrorResponse, SuccessResponse};
@@ -45,6 +47,7 @@ fn open_file(full_path: &StdPath) {
         let path_str = full_path.to_string_lossy().replace('/', "\\");
         let _ = Command::new("explorer")
             .args(&["/select,", &path_str])
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW
             .spawn();
     }
 
@@ -70,11 +73,15 @@ fn open_directory(dir_path: &StdPath, full_path: &StdPath) {
     {
         let path_str = full_path.to_string_lossy().replace('/', "\\");
         let mut cmd = Command::new("explorer");
-        cmd.args(&["/select,", &path_str]);
+        cmd.args(&["/select,", &path_str])
+            .creation_flags(0x08000000); // CREATE_NO_WINDOW
         if cmd.spawn().is_err() {
             // If file doesn't exist, just open the directory
             let dir_str = dir_path.to_string_lossy().replace('/', "\\");
-            let _ = Command::new("explorer").arg(&dir_str).spawn();
+            let _ = Command::new("explorer")
+                .arg(&dir_str)
+                .creation_flags(0x08000000) // CREATE_NO_WINDOW
+                .spawn();
         }
     }
 

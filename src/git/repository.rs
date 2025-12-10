@@ -4,16 +4,23 @@ use git2::{self, BranchType, Cred, Oid, RemoteCallbacks, Repository, Sort};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 
 use crate::models::{BranchInfo, BranchMetadata, Commit, StashEntry};
 
 /// Run a git command in the specified directory and return stdout as a String.
 /// This is a standalone utility for handlers that don't need a full GitRepository.
 pub fn run_git(args: &[&str], repo_path: &Path) -> Result<String, String> {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(repo_path)
-        .output()
+    let mut cmd = Command::new("git");
+    cmd.args(args).current_dir(repo_path);
+
+    #[cfg(target_os = "windows")]
+    {
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+
+    let output = cmd.output()
         .map_err(|e| e.to_string())?;
 
     if !output.status.success() {
@@ -180,10 +187,15 @@ impl GitRepository {
 
     /// Run a git command in this repository and return stdout as a String.
     pub fn run_git(&self, args: &[&str]) -> Result<String> {
-        let output = Command::new("git")
-            .args(args)
-            .current_dir(&self.path)
-            .output()
+        let mut cmd = Command::new("git");
+        cmd.args(args).current_dir(&self.path);
+
+        #[cfg(target_os = "windows")]
+        {
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+
+        let output = cmd.output()
             .with_context(|| format!("Failed to run git with args {:?}", args))?;
 
         if !output.status.success() {
@@ -196,10 +208,15 @@ impl GitRepository {
 
     /// Run a git command in this repository and return stdout bytes.
     pub fn run_git_bytes(&self, args: &[&str]) -> Result<Vec<u8>> {
-        let output = Command::new("git")
-            .args(args)
-            .current_dir(&self.path)
-            .output()
+        let mut cmd = Command::new("git");
+        cmd.args(args).current_dir(&self.path);
+
+        #[cfg(target_os = "windows")]
+        {
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+
+        let output = cmd.output()
             .with_context(|| format!("Failed to run git with args {:?}", args))?;
 
         if !output.status.success() {

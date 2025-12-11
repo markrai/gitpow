@@ -1,0 +1,52 @@
+# Dockerfile for building GitPow for Windows (cross-compilation)
+# https://github.com/markrai/gitpow
+#
+# Based on Debian for cross-compilation support
+FROM debian:12-slim
+
+# Install system dependencies including MinGW for Windows cross-compilation
+RUN apt-get update \
+    && apt-get install -y \
+        build-essential \
+        curl \
+        wget \
+        file \
+        libssl-dev \
+        gcc-mingw-w64-x86-64 \
+        g++-mingw-w64-x86-64 \
+        binutils-mingw-w64-x86-64 \
+        mingw-w64-tools \
+        git \
+        pkg-config \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js via nvm
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+RUN bash -c 'source "$HOME/.nvm/nvm.sh" && nvm install 24 && nvm use 24 && nvm alias default 24'
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+# Set up environment for Rust and Node.js
+ENV PATH="/root/.cargo/bin:/root/.nvm/versions/node/v24.0.0/bin:/usr/bin:/bin:${PATH}"
+
+# Set up MinGW cross-compilation environment
+ENV CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc
+ENV CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++
+ENV AR_x86_64_pc_windows_gnu=x86_64-w64-mingw32-ar
+ENV CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc
+
+# Install Windows target
+RUN rustup target add x86_64-pc-windows-gnu
+
+# Install Rust tools
+RUN cargo install wasm-pack
+RUN cargo install tauri-cli
+
+# Set working directory
+WORKDIR /gitpow
+
+# Default command
+CMD ["/bin/bash"]
+

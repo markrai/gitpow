@@ -1,0 +1,70 @@
+services:
+  builder-linux:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gitpow-builder-linux:latest
+    volumes:
+      - .:/gitpow
+      - cargo-cache-linux:/root/.cargo
+      - rustup-cache-linux:/root/.rustup
+      - ./build-output/linux:/output
+    environment:
+      - CARGO_HOME=/root/.cargo
+      - RUSTUP_HOME=/root/.rustup
+      - PATH=/root/.cargo/bin:/root/.nvm/versions/node/v24.0.0/bin:/usr/bin:/bin:${PATH}
+    command:
+      - /bin/bash
+      - -c
+      - |
+        cd /gitpow
+        rustup target add wasm32-unknown-unknown
+        cd graph-wasm
+        wasm-pack build --target web
+        cd ..
+        mkdir -p static/graph-wasm/pkg
+        cp -r graph-wasm/pkg/* static/graph-wasm/pkg/
+        cargo tauri build
+        mkdir -p /output
+        cp target/release/gitpow-tauri /output/ 2>/dev/null || true
+        echo 'Linux build complete!'
+
+  builder-windows:
+    build:
+      context: .
+      dockerfile: Dockerfile.windows
+    image: gitpow-builder-windows:latest
+    volumes:
+      - .:/gitpow
+      - cargo-cache-windows:/root/.cargo
+      - rustup-cache-windows:/root/.rustup
+      - ./build-output/windows:/output
+    environment:
+      - CARGO_HOME=/root/.cargo
+      - RUSTUP_HOME=/root/.rustup
+      - PATH=/root/.cargo/bin:/root/.nvm/versions/node/v24.0.0/bin:/usr/bin:/bin:${PATH}
+      - CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc
+      - CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++
+      - AR_x86_64_pc_windows_gnu=x86_64-w64-mingw32-ar
+      - CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc
+    command:
+      - /bin/bash
+      - -c
+      - |
+        cd /gitpow
+        rustup target add wasm32-unknown-unknown
+        cd graph-wasm
+        wasm-pack build --target web
+        cd ..
+        mkdir -p static/graph-wasm/pkg
+        cp -r graph-wasm/pkg/* static/graph-wasm/pkg/
+        cargo tauri build --target x86_64-pc-windows-gnu
+        mkdir -p /output
+        cp target/x86_64-pc-windows-gnu/release/gitpow-tauri.exe /output/ 2>/dev/null || true
+        echo 'Windows build complete!'
+
+volumes:
+  cargo-cache-linux:
+  rustup-cache-linux:
+  cargo-cache-windows:
+  rustup-cache-windows:

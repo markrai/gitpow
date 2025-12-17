@@ -1,6 +1,6 @@
-<img width="500" height="500" alt="powpow" src="https://github.com/user-attachments/assets/78e5984f-b076-49ff-b04a-78ed7292ab0a" />
+<img width="400" height="400" alt="image-Photoroom" src="https://github.com/user-attachments/assets/f25bdc63-c7dd-45d5-b166-e24d76a3e626" />
 <img width="500" height="220" alt="image" src="https://github.com/user-attachments/assets/5dfd6463-5af7-405c-992d-d2e61d330936" />
-
+<img width="1080" height="606" alt="image" src="https://github.com/user-attachments/assets/684bd3b6-0697-4b9b-8493-8e6604c551fc" />
 
 # Why?
 
@@ -524,10 +524,6 @@ Separation by month/year:
 vertical graph view:
 
 <img width="1920" height="1077" alt="image" src="https://github.com/user-attachments/assets/b2fd32b1-ed7b-4b05-8da5-9d9a1285e402" />
-
-Horizontal graph view:
-
-<img width="1080" height="606" alt="image" src="https://github.com/user-attachments/assets/684bd3b6-0697-4b9b-8493-8e6604c551fc" />
 
 Image Diff Preview:
 

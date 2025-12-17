@@ -3,7 +3,7 @@
   "version": "0.1.2",
   "type": "module",
   "dependencies": {
-    "@tauri-apps/api": "^2.0.0"
+    "@tauri-apps/api": "^2"
   }
 }
 

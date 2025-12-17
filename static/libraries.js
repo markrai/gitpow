@@ -2,7 +2,7 @@
 // This file is generated during build from Cargo.toml and package.json
 
 window.EXTERNAL_LIBRARIES = [
-  { name: "@tauri-apps/api", version: "2.0.0" },
+  { name: "@tauri-apps/api", version: "2" },
   { name: "anyhow", version: "1" },
   { name: "axum", version: "0.7" },
   { name: "base64", version: "0.21" },
@@ -16,9 +16,9 @@ window.EXTERNAL_LIBRARIES = [
   { name: "rfd", version: "0.14" },
   { name: "serde", version: "1" },
   { name: "serde_json", version: "1" },
-  { name: "tauri", version: "2.0" },
-  { name: "tauri-build", version: "2.0" },
-  { name: "tauri-plugin-shell", version: "2.0" },
+  { name: "tauri", version: "2" },
+  { name: "tauri-build", version: "2" },
+  { name: "tauri-plugin-shell", version: "2" },
   { name: "three", version: "0.160.0" },
   { name: "tokio", version: "1" },
   { name: "tower", version: "0.4" },

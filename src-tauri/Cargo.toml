@@ -31,3 +31,15 @@ gitpow-rust = { path = "../", package = "gitpow-rust" }
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
 
+# Optimize for smaller binary size (recommended by Tauri)
+# See: https://v2.tauri.app/concept/size/#cargo-configuration
+[profile.dev]
+incremental = true # Compile your binary in smaller steps.
+
+[profile.release]
+codegen-units = 1 # Allows LLVM to perform better optimization.
+lto = true # Enables link-time-optimizations.
+opt-level = "3" # Optimize for speed. Use `s` if you prefer smaller binary size.
+panic = "abort" # Higher performance by disabling panic handlers.
+strip = true # Ensures debug symbols are removed.
+

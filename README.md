@@ -36,12 +36,15 @@ This is a passion project of mine where I wanted a cross-platform git client, wh
 
 ### Linux-Specific
 
+**Note:** These are system-level dependencies required for Tauri applications on Linux. They cannot be bundled with the application and must be installed separately. This is standard practice for Linux GUI applications.
+
 Install system dependencies:
 
 **Ubuntu/Debian:**
 ```bash
 sudo apt update
-sudo apt install libwebkit2gtk-4.1-dev \
+sudo apt install -y \
+    libwebkit2gtk-4.1-dev \
     build-essential \
     curl \
     wget \
@@ -52,7 +55,15 @@ sudo apt install libwebkit2gtk-4.1-dev \
     librsvg2-dev \
     libsoup-3.0-dev \
     libjavascriptcoregtk-4.1-dev \
-    xdg-utils
+    xdg-utils \
+    pkg-config
+```
+
+**Quick install script:**
+```bash
+# The test script can automatically install missing dependencies
+./test-linux-build.sh
+# When prompted, answer 'Y' to install dependencies
 ```
 
 **Fedora:**
@@ -157,6 +168,13 @@ src-tauri/target/release/bundle/msi/gitpow_0.1.0_x64_en-US.msi
 
 #### Linux
 
+**Quick Test (Recommended):**
+```bash
+# Use the automated test script
+chmod +x test-linux-build.sh
+./test-linux-build.sh
+```
+
 **Development Build:**
 ```bash
 cargo tauri dev
@@ -171,8 +189,11 @@ The executable will be located at:
 ```
 src-tauri/target/release/gitpow-tauri
 ```
+(or `target/release/gitpow-tauri` if building from workspace root)
 
 **Note:** The executable name is `gitpow-tauri` (matching the Cargo package name), not `gitpow`.
+
+**See [LINUX-TEST-GUIDE.md](LINUX-TEST-GUIDE.md) for detailed Linux build instructions and troubleshooting.**
 
 **AppImage:**
 ```
@@ -259,12 +280,16 @@ Docker cannot build macOS executables as macOS Docker images are not available f
 
 ## Docker Build
 
-For building in Docker containers (useful for isolated builds or cross-platform development), you can use the provided Docker setup. This allows you to build Linux and Windows executables from any host OS.
+For building in Docker containers (useful for isolated builds or cross-platform development), you can use the provided Docker setup.
 
-**Supported platforms in Docker:**
-- ✅ Linux (native)
-- ✅ Windows (cross-compiled using MinGW-w64)
-- ❌ macOS (requires macOS host - see [macOS Build](#building-macos-executable-from-linuxwindows) section)
+**GitPow is a fully cross-platform application** that runs on Linux, Windows, and macOS. Docker is provided as a convenient way to build executables from any host OS.
+
+**Docker build support:**
+- ✅ Linux (native) - can be built in Docker
+- ✅ Windows (cross-compiled using MinGW-w64) - can be built in Docker
+- ℹ️ macOS - requires macOS host (see [macOS Build](#macos-build) section)
+
+**Note:** macOS builds cannot be done in Docker due to macOS licensing restrictions. macOS is fully supported as a platform - you just need to build on a Mac. See the [macOS Build](#macos-build) section for instructions.
 
 ### Prerequisites
 
@@ -319,7 +344,7 @@ Or use the test script (Windows):
 test-win&linux_builds.bat
 ```
 
-**Note:** macOS builds cannot be done in Docker and require a macOS host. See [macOS Build](#macos-build) section below.
+**Note:** macOS is fully supported as a platform. Docker simply cannot build macOS executables due to macOS licensing restrictions, so macOS builds must be done on a Mac. See [macOS Build](#macos-build) section below.
 
 #### macOS Build
 

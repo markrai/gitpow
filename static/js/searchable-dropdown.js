@@ -293,6 +293,15 @@ function createSearchableDropdown(selectElement, options = {}) {
     }
   });
 
+  // Track if mouse is over dropdown to prevent closing on scroll
+  let isMouseOverDropdown = false;
+  dropdown.addEventListener("mouseenter", () => {
+    isMouseOverDropdown = true;
+  });
+  dropdown.addEventListener("mouseleave", () => {
+    isMouseOverDropdown = false;
+  });
+  
   // Close dropdown when clicking outside
   // Use capture phase to ensure we catch all clicks before they bubble
   const handleClickOutside = (e) => {
@@ -303,19 +312,41 @@ function createSearchableDropdown(selectElement, options = {}) {
   document.addEventListener("click", handleClickOutside, true);
   
   // Also close on window scroll/resize to prevent misalignment
-  const handleWindowChange = () => {
+  // But only if the scroll is not happening inside the dropdown
+  const handleWindowScroll = (e) => {
+    if (dropdown.style.display !== "none" && dropdown.style.display !== "") {
+      // Don't close if mouse is over dropdown or if scrolling inside the dropdown
+      if (isMouseOverDropdown || (e && e.target && dropdown.contains(e.target))) {
+        return;
+      }
+      hideDropdown(true);
+    }
+  };
+  const handleWindowResize = () => {
     if (dropdown.style.display !== "none" && dropdown.style.display !== "") {
       hideDropdown(true);
     }
   };
-  window.addEventListener("scroll", handleWindowChange, true);
-  window.addEventListener("resize", handleWindowChange);
+  window.addEventListener("scroll", handleWindowScroll, true);
+  window.addEventListener("resize", handleWindowResize);
+  
+  // Prevent wheel events on the dropdown from closing it
+  // Allow scrolling within the options container
+  optionsContainer.addEventListener("wheel", (e) => {
+    e.stopPropagation();
+    // Allow normal scrolling behavior
+  }, { passive: true });
+  
+  // Also prevent wheel events on the dropdown itself from bubbling
+  dropdown.addEventListener("wheel", (e) => {
+    e.stopPropagation();
+  }, { passive: true });
   
   // Store cleanup function for potential future use
   container._cleanupClickOutside = () => {
     document.removeEventListener("click", handleClickOutside, true);
-    window.removeEventListener("scroll", handleWindowChange, true);
-    window.removeEventListener("resize", handleWindowChange);
+    window.removeEventListener("scroll", handleWindowScroll, true);
+    window.removeEventListener("resize", handleWindowResize);
     // Remove dropdown from DOM when cleaning up
     if (dropdown.parentNode) {
       dropdown.parentNode.removeChild(dropdown);

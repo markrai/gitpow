@@ -41,6 +41,13 @@ const contextMenu = document.getElementById("contextMenu");
 const contextMenuOpenExplorer = document.getElementById("contextMenuOpenExplorer");
 const contextMenuViewGitHub = document.getElementById("contextMenuViewGitHub");
 const contextMenuCopyCommitId = document.getElementById("contextMenuCopyCommitId");
+const contextMenuCheckoutCommit = document.getElementById("contextMenuCheckoutCommit");
+
+// Exit Detached HEAD Modal
+const exitDetachedHeadModal = document.getElementById("exitDetachedHeadModal");
+const exitDetachedHeadClose = document.getElementById("exitDetachedHeadClose");
+const exitDetachedHeadYes = document.getElementById("exitDetachedHeadYes");
+const exitDetachedHeadNo = document.getElementById("exitDetachedHeadNo");
 
 // ============================================================================
 // Status and Settings
@@ -119,6 +126,13 @@ window.contextMenu = contextMenu;
 window.contextMenuOpenExplorer = contextMenuOpenExplorer;
 window.contextMenuViewGitHub = contextMenuViewGitHub;
 window.contextMenuCopyCommitId = contextMenuCopyCommitId;
+window.contextMenuCheckoutCommit = contextMenuCheckoutCommit;
+
+// Exit Detached HEAD Modal
+window.exitDetachedHeadModal = exitDetachedHeadModal;
+window.exitDetachedHeadClose = exitDetachedHeadClose;
+window.exitDetachedHeadYes = exitDetachedHeadYes;
+window.exitDetachedHeadNo = exitDetachedHeadNo;
 
 // Status/Settings
 window.statusEl = statusEl;

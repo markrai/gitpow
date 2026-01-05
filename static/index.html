@@ -624,6 +624,7 @@
       <div class="context-menu-item" id="contextMenuOpenExplorer" style="display: none;">Open in File Explorer</div>
       <div class="context-menu-item" id="contextMenuViewGitHub" style="display: none;">View GitHub Profile</div>
       <div class="context-menu-item" id="contextMenuCopyCommitId" style="display: none;">Copy Commit ID</div>
+      <div class="context-menu-item" id="contextMenuCheckoutCommit" style="display: none;">Checkout Commit (Detached HEAD)</div>
     </div>
     <div class="conflict-center" id="conflictCenter">
       <div class="conflict-header">
@@ -666,6 +667,25 @@
     <div style="padding: 6px 12px; border-radius: 8px;
                 background: rgba(15,23,42,0.96); border: 1px solid rgba(31,41,55,0.9);
                 box-shadow: 0 8px 24px rgba(0,0,0,0.5); white-space: nowrap;"></div>
+  </div>
+
+  <!-- Exit Detached HEAD Modal -->
+  <div id="exitDetachedHeadModal" class="settings-modal" style="display: none;">
+    <div class="settings-modal-content" style="max-width: 400px;">
+      <div class="settings-modal-header">
+        <h2 style="margin: 0; font-size: 18px; color: #e5e7eb;">Exit Detached State?</h2>
+        <button id="exitDetachedHeadClose" style="background: none; border: none; color: #9ca3af; font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">×</button>
+      </div>
+      <div class="settings-tab-content" style="padding: 20px;">
+        <div style="margin-bottom: 20px; color: #e5e7eb; font-size: 14px;">
+          Do you want to exit detached HEAD state and return to a branch?
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button id="exitDetachedHeadNo" style="padding: 8px 16px; background: rgba(31,41,55,0.9); border: 1px solid #4b5563; border-radius: 4px; color: #e5e7eb; font-size: 13px; cursor: pointer;">No</button>
+          <button id="exitDetachedHeadYes" style="padding: 8px 16px; background: #22c55e; border: 1px solid #16a34a; border-radius: 4px; color: #fff; font-size: 13px; cursor: pointer; font-weight: 500;">Yes</button>
+        </div>
+      </div>
+    </div>
   </div>
 
 

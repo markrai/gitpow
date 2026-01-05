@@ -240,6 +240,9 @@ let state = {
   expandedMonths: new Set(), // Track which months are expanded (by monthKey)
   contextMenuFile: null, // File path for context menu
   contextMenuCommit: null, // Commit object for context menu
+  detachedHeadCommit: null, // Commit object when in detached HEAD state { sha, message }
+  previousBranch: null, // Branch name before entering detached HEAD state
+  isCheckingOutBranch: false, // Flag to prevent re-detection of detached HEAD during checkout
   // canvasOpen removed - commit canvas is now integrated into diffPanel
   status: { files: [] },
   currentDiffFile: null,

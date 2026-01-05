@@ -58,9 +58,25 @@ function setStatusMessage(text, requestId = null) {
     window.lastStatusUpdateTime = now;
   }
 
+  // Check if we're in detached HEAD state - preserve that message
+  const isDetachedHeadMessage = innerDiv.textContent && innerDiv.textContent.includes("DETACHED HEAD:");
+  const shouldPreserveDetachedHead = window.state && window.state.detachedHeadCommit && !text;
+
   // Atomic update - do all DOM manipulation together
   if (text && text.trim()) {
     innerDiv.textContent = text;
+    // Set color to red if it's a detached HEAD message, otherwise use default
+    if (text.includes("DETACHED HEAD:")) {
+      innerDiv.style.color = '#ef4444'; // Red color
+      // Make it clickable for detached HEAD messages
+      statusEl.style.pointerEvents = 'auto';
+      statusEl.style.cursor = 'pointer';
+    } else {
+      innerDiv.style.color = ''; // Reset to default
+      // Reset pointer events for non-detached-HEAD messages
+      statusEl.style.pointerEvents = 'none';
+      statusEl.style.cursor = '';
+    }
     statusEl.style.display = 'block';
     statusEl.style.visibility = 'visible';
     statusEl.style.opacity = '1';
@@ -70,13 +86,30 @@ function setStatusMessage(text, requestId = null) {
   } else {
     // Only clear if no requestId or if it matches current request
     if (requestId === null || requestId === window.currentLoadRequestId) {
+      // If we're in detached HEAD state, restore the detached HEAD message instead of clearing
+      if (shouldPreserveDetachedHead && window.updateDetachedHeadStatus) {
+        // Restore detached HEAD message after a brief delay to allow other operations to complete
+        setTimeout(() => {
+          if (window.state && window.state.detachedHeadCommit) {
+            window.updateDetachedHeadStatus();
+          }
+        }, 50);
+        return; // Don't clear - we'll restore the detached HEAD message
+      }
+      
       // Fade out before hiding
       statusEl.style.opacity = '0';
       statusEl.style.transition = 'opacity 0.3s ease-out';
       // Hide after fade completes
       setTimeout(() => {
         // Double-check we should still hide (in case a new message was set)
-        if (statusEl.style.opacity === '0' || !innerDiv.textContent.trim()) {
+        // But don't hide if we're in detached HEAD state
+        if (window.state && window.state.detachedHeadCommit) {
+          // Restore detached HEAD message
+          if (window.updateDetachedHeadStatus) {
+            window.updateDetachedHeadStatus();
+          }
+        } else if (statusEl.style.opacity === '0' || !innerDiv.textContent.trim()) {
           statusEl.style.display = 'none';
           statusEl.style.visibility = 'hidden';
         }

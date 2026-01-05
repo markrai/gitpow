@@ -322,6 +322,87 @@ async function loadBranches() {
     state.branchMetadata = data.branchMetadata || null;
     state.defaultBranch = data.current || (data.branches && data.branches[0]) || null;
 
+    // Check if we're in detached HEAD state (current branch is "HEAD" or a commit SHA)
+    // But skip detection if we're in the middle of checking out a branch
+    const isDetachedHead = !state.isCheckingOutBranch && 
+                           (data.current === "HEAD" || 
+                           (data.current && data.current.length === 40 && /^[0-9a-f]{40}$/i.test(data.current)) ||
+                           (data.current && !data.branches.includes(data.current)));
+    
+    if (isDetachedHead) {
+      // We're in detached HEAD state
+      if (!state.detachedHeadCommit) {
+        // We don't have commit info yet - fetch it
+        // Get the HEAD SHA from data.head (preferred) or data.current if it's a SHA
+        let headSha = data.head;
+        if (!headSha || headSha.length !== 40) {
+          // If data.head is not available or not a SHA, try data.current
+          if (data.current && data.current.length === 40 && /^[0-9a-f]{40}$/i.test(data.current)) {
+            headSha = data.current;
+          }
+        }
+        
+        if (headSha && headSha.length === 40) {
+          // We have a valid SHA - fetch commit information asynchronously
+          (async () => {
+            try {
+              // Get commits to find the one matching HEAD
+              const commits = await api(`/api/repos/${encodeURIComponent(state.currentRepo)}/commits?branch=${encodeURIComponent(headSha)}&limit=1`);
+              if (commits && commits.length > 0) {
+                const commit = commits[0];
+                state.detachedHeadCommit = {
+                  sha: commit.sha,
+                  message: commit.message || ""
+                };
+                updateDetachedHeadStatus();
+              } else {
+                // Fallback: use the SHA we have
+                state.detachedHeadCommit = {
+                  sha: headSha,
+                  message: ""
+                };
+                updateDetachedHeadStatus();
+              }
+            } catch (err) {
+              console.error("Failed to fetch detached HEAD commit info:", err);
+              // Fallback: use the SHA we have
+              state.detachedHeadCommit = {
+                sha: headSha,
+                message: ""
+              };
+              updateDetachedHeadStatus();
+            }
+          })();
+        } else {
+          // We don't have a SHA yet - try to get it by fetching HEAD commits
+          // This can happen if data.head is not set
+          (async () => {
+            try {
+              const commits = await api(`/api/repos/${encodeURIComponent(state.currentRepo)}/commits?branch=HEAD&limit=1`);
+              if (commits && commits.length > 0) {
+                const commit = commits[0];
+                state.detachedHeadCommit = {
+                  sha: commit.sha,
+                  message: commit.message || ""
+                };
+                updateDetachedHeadStatus();
+              }
+            } catch (err) {
+              console.error("Failed to fetch detached HEAD commit info from HEAD:", err);
+            }
+          })();
+        }
+      } else {
+        // We already have commit info - just update status
+        updateDetachedHeadStatus();
+      }
+    } else if (!isDetachedHead && state.detachedHeadCommit) {
+      // We're on a branch now, clear detached HEAD state and previous branch
+      state.detachedHeadCommit = null;
+      state.previousBranch = null;
+      updateDetachedHeadStatus();
+    }
+
     // In graph mode, default to "All" if not already set
     if (isGraphMode() && state.currentBranch !== "__ALL__") {
       state.currentBranch = "__ALL__";
@@ -420,6 +501,10 @@ async function loadBranches() {
           }, 200);
         }
         setStatus("");
+        // Restore detached HEAD message if we're in that state
+        if (state.detachedHeadCommit) {
+          setTimeout(() => updateDetachedHeadStatus(), 100);
+        }
         return; // Don't reload commits - they're already loading
       } else {
         console.log("[loadBranches] Cache is stale, updating with fresh data");
@@ -514,6 +599,10 @@ async function loadCommits() {
   const displayCachedData = () => {
     // Clear loading messages immediately
     setStatusMessage(""); // Clear any "Loading commits..." messages
+    // Restore detached HEAD message if we're in that state
+    if (state.detachedHeadCommit) {
+      setTimeout(() => updateDetachedHeadStatus(), 100);
+    }
     if (isGraphMode() && window.graphView && window.graphView.setGraphLegendStatus) {
       window.graphView.setGraphLegendStatus("");
     }
@@ -3782,6 +3871,9 @@ function showContextMenu(x, y) {
   if (contextMenuCopyCommitId) {
     contextMenuCopyCommitId.style.display = state.contextMenuCommit ? "block" : "none";
   }
+  if (contextMenuCheckoutCommit) {
+    contextMenuCheckoutCommit.style.display = state.contextMenuCommit ? "block" : "none";
+  }
   
   contextMenu.style.display = "block";
   contextMenu.style.left = x + "px";
@@ -3910,6 +4002,10 @@ if (contextMenuCopyCommitId) {
       await navigator.clipboard.writeText(fullCommitId);
       setStatus(`Copied commit ID: ${fullCommitId}`, false);
       hideContextMenu();
+      // Auto-fade the status message after 2 seconds
+      setTimeout(() => {
+        setStatus("");
+      }, 2000);
     } catch (err) {
       console.error('Failed to copy commit ID:', err);
       // Fallback for older browsers or if clipboard API fails
@@ -3924,9 +4020,359 @@ if (contextMenuCopyCommitId) {
         document.body.removeChild(textArea);
         setStatus(`Copied commit ID: ${fullCommitId}`, false);
         hideContextMenu();
+        // Auto-fade the status message after 2 seconds
+        setTimeout(() => {
+          setStatus("");
+        }, 2000);
       } catch (fallbackErr) {
         setStatus("Failed to copy commit ID: " + (fallbackErr.message || fallbackErr), true);
         hideContextMenu();
+        // Auto-fade error messages after 3 seconds (longer for errors)
+        setTimeout(() => {
+          setStatus("");
+        }, 3000);
+      }
+    }
+  });
+}
+
+// Function to update detached HEAD status message
+function updateDetachedHeadStatus() {
+  const statusEl = document.getElementById("statusMessage");
+  if (!statusEl) return;
+  
+  const innerDiv = statusEl.querySelector('div');
+  if (!innerDiv) return;
+  
+  if (state.detachedHeadCommit) {
+    const shortSha = state.detachedHeadCommit.sha.slice(0, 10);
+    const message = state.detachedHeadCommit.message || "";
+    // Truncate message if too long (keep first line if multi-line)
+    const firstLine = message.split('\n')[0].trim();
+    const truncatedMessage = firstLine.length > 60 ? firstLine.substring(0, 57) + "..." : firstLine;
+    const statusText = `DETACHED HEAD: ${shortSha}${truncatedMessage ? ` (${truncatedMessage})` : ""}`;
+    
+    // Set the text and make it red
+    innerDiv.textContent = statusText;
+    innerDiv.style.color = '#ef4444'; // Red color
+    statusEl.style.display = 'block';
+    statusEl.style.visibility = 'visible';
+    statusEl.style.opacity = '1';
+    statusEl.style.zIndex = '1000';
+    statusEl.style.transition = 'opacity 0.3s ease-out';
+    
+    // Make it clickable
+    statusEl.style.pointerEvents = 'auto';
+    statusEl.style.cursor = 'pointer';
+    
+    // Set click handler (using onclick to replace any existing handler)
+    statusEl.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (state.detachedHeadCommit) {
+        showExitDetachedHeadModal();
+      }
+    };
+  } else {
+    // Clear detached HEAD message if we're on a branch
+    // Only clear if the current status is about detached HEAD
+    if (innerDiv.textContent.includes("DETACHED HEAD:")) {
+      // Reset color to default and remove click handler
+      innerDiv.style.color = '';
+      statusEl.style.pointerEvents = 'none';
+      statusEl.style.cursor = '';
+      statusEl.onclick = null;
+      setStatusMessage("");
+    }
+  }
+}
+
+// Export to window for access from ui.js
+window.updateDetachedHeadStatus = updateDetachedHeadStatus;
+
+// Handle checkout commit (detached HEAD)
+if (contextMenuCheckoutCommit) {
+  contextMenuCheckoutCommit.addEventListener("click", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!state.contextMenuCommit || !state.currentRepo) {
+      hideContextMenu();
+      return;
+    }
+    
+    const commitSha = state.contextMenuCommit.sha;
+    
+    try {
+      // Use Tauri invoke to call the checkout_commit command
+      const tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
+      if (!tauri) {
+        throw new Error('Tauri API not available');
+      }
+
+      let invokeFn = null;
+      if (tauri.core && tauri.core.invoke) {
+        invokeFn = tauri.core.invoke.bind(tauri.core);
+      } else if (tauri.invoke) {
+        invokeFn = tauri.invoke.bind(tauri);
+      } else if (window.__TAURI_INTERNALS__) {
+        const internals = window.__TAURI_INTERNALS__;
+        if (internals.core && internals.core.invoke) {
+          invokeFn = internals.core.invoke.bind(internals.core);
+        } else if (internals.invoke) {
+          invokeFn = internals.invoke.bind(internals);
+        } else if (internals.ipc && internals.ipc.invoke) {
+          invokeFn = internals.ipc.invoke.bind(internals.ipc);
+        }
+      }
+
+      if (!invokeFn) {
+        throw new Error('Tauri invoke function not available');
+      }
+
+      const result = await invokeFn('checkout_commit', {
+        repo: state.currentRepo,
+        commitSha: commitSha
+      });
+
+      if (result.success) {
+        // Store the previous branch before entering detached HEAD
+        if (state.currentBranch && state.currentBranch !== "HEAD" && !state.previousBranch) {
+          state.previousBranch = state.currentBranch;
+        }
+        
+        // Store detached HEAD state
+        state.detachedHeadCommit = {
+          sha: commitSha,
+          message: state.contextMenuCommit.message || ""
+        };
+        
+        // Update status message
+        updateDetachedHeadStatus();
+        
+        // Reload branches to reflect the detached HEAD state
+        await loadBranches();
+        
+        // Reload commits
+        await loadCommits();
+        
+        hideContextMenu();
+      } else {
+        setStatus(result.error || result.message || "Failed to checkout commit", true);
+        hideContextMenu();
+      }
+    } catch (err) {
+      console.error('Failed to checkout commit:', err);
+      setStatus("Failed to checkout commit: " + (err.message || err), true);
+      hideContextMenu();
+    }
+  });
+}
+
+// Functions to show/hide exit detached HEAD modal
+function showExitDetachedHeadModal() {
+  if (exitDetachedHeadModal) {
+    exitDetachedHeadModal.style.display = 'flex';
+  }
+}
+
+function closeExitDetachedHeadModal() {
+  if (exitDetachedHeadModal) {
+    exitDetachedHeadModal.style.display = 'none';
+  }
+}
+
+// Handle exit detached HEAD modal
+if (exitDetachedHeadModal) {
+  // Close when clicking on backdrop
+  exitDetachedHeadModal.addEventListener("click", (e) => {
+    if (e.target === exitDetachedHeadModal) {
+      closeExitDetachedHeadModal();
+    }
+  });
+}
+
+if (exitDetachedHeadClose) {
+  exitDetachedHeadClose.addEventListener("click", () => {
+    closeExitDetachedHeadModal();
+  });
+}
+
+if (exitDetachedHeadNo) {
+  exitDetachedHeadNo.addEventListener("click", () => {
+    closeExitDetachedHeadModal();
+  });
+}
+
+if (exitDetachedHeadYes) {
+  exitDetachedHeadYes.addEventListener("click", async () => {
+    if (!state.currentRepo || !state.detachedHeadCommit) {
+      closeExitDetachedHeadModal();
+      return;
+    }
+    
+    // Disable the button to prevent double-clicks
+    if (exitDetachedHeadYes) {
+      exitDetachedHeadYes.disabled = true;
+      exitDetachedHeadYes.textContent = "Switching...";
+    }
+    
+    let targetBranch = null;
+    
+    try {
+      // Use Tauri invoke to get the best branch to checkout
+      const tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
+      if (!tauri) {
+        throw new Error('Tauri API not available');
+      }
+
+      let invokeFn = null;
+      if (tauri.core && tauri.core.invoke) {
+        invokeFn = tauri.core.invoke.bind(tauri.core);
+      } else if (tauri.invoke) {
+        invokeFn = tauri.invoke.bind(tauri);
+      } else if (window.__TAURI_INTERNALS__) {
+        const internals = window.__TAURI_INTERNALS__;
+        if (internals.core && internals.core.invoke) {
+          invokeFn = internals.core.invoke.bind(internals.core);
+        } else if (internals.invoke) {
+          invokeFn = internals.invoke.bind(internals);
+        } else if (internals.ipc && internals.ipc.invoke) {
+          invokeFn = internals.ipc.invoke.bind(internals.ipc);
+        }
+      }
+
+      if (!invokeFn) {
+        throw new Error('Tauri invoke function not available');
+      }
+
+      // Use the new robust command that handles all fallback logic
+      try {
+        targetBranch = await invokeFn('get_best_branch_to_checkout', {
+          repo: state.currentRepo
+        });
+      } catch (err) {
+        console.warn("Failed to get best branch to checkout:", err);
+      }
+      
+      // Fallback: try stored previousBranch if available and still exists
+      if (!targetBranch && state.previousBranch && state.branches && state.branches.includes(state.previousBranch)) {
+        targetBranch = state.previousBranch;
+      }
+      
+      // Final fallback: use local branch list
+      if (!targetBranch && state.branches && state.branches.length > 0) {
+        // Try to find main or master first
+        targetBranch = state.branches.find(b => b === "main" || b === "master") || state.branches[0];
+      }
+      
+      if (!targetBranch) {
+        setStatus("No branch available to checkout", true);
+        closeExitDetachedHeadModal();
+        if (exitDetachedHeadYes) {
+          exitDetachedHeadYes.disabled = false;
+          exitDetachedHeadYes.textContent = "Yes";
+        }
+        return;
+      }
+
+      // Set flag to prevent re-detection of detached HEAD during checkout
+      state.isCheckingOutBranch = true;
+      
+      // Perform the checkout
+      const result = await invokeFn('checkout_branch', {
+        repo: state.currentRepo,
+        branchName: targetBranch
+      });
+
+      if (result.success) {
+        // Clear detached HEAD state immediately
+        state.detachedHeadCommit = null;
+        state.previousBranch = null;
+        
+        // Update branch dropdown immediately
+        if (branchSelect) {
+          branchSelect.value = targetBranch;
+        }
+        if (branchSearchable) {
+          branchSearchable.setValue(targetBranch);
+        }
+        
+        // Update status message
+        updateDetachedHeadStatus();
+        
+        // Small delay to ensure git state has updated after checkout
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Reload branches to get fresh state from git
+        // This will update state.currentBranch and state.branches
+        await loadBranches();
+        
+        // Clear the flag after reload
+        state.isCheckingOutBranch = false;
+        
+        // Verify we're actually on a branch (not detached HEAD)
+        const isOnBranch = state.currentBranch && 
+                          state.currentBranch !== "HEAD" && 
+                          state.currentBranch.length !== 40 && // Not a SHA
+                          state.branches && 
+                          state.branches.includes(state.currentBranch);
+        
+        if (isOnBranch) {
+          // Successfully on a branch - ensure detached HEAD state is cleared
+          state.detachedHeadCommit = null;
+          state.previousBranch = null;
+          updateDetachedHeadStatus();
+          
+          // Reload commits to show the branch's commits
+          await loadCommits();
+          
+          closeExitDetachedHeadModal();
+          setStatus(`Switched to branch: ${state.currentBranch}`, false);
+          setTimeout(() => setStatus(""), 2000);
+        } else {
+          // Still in detached HEAD - this shouldn't happen but handle gracefully
+          console.warn("Still in detached HEAD after checkout. Current branch:", state.currentBranch);
+          
+          // Try one more time to reload branches
+          await loadBranches();
+          
+          // Check again
+          const stillDetached = !state.currentBranch || 
+                               state.currentBranch === "HEAD" || 
+                               (state.currentBranch.length === 40 && /^[0-9a-f]{40}$/i.test(state.currentBranch)) ||
+                               !state.branches || 
+                               !state.branches.includes(state.currentBranch);
+          
+          if (stillDetached) {
+            setStatus("Checkout completed but still in detached HEAD state. Please try again.", true);
+          } else {
+            // Actually succeeded on second check
+            state.detachedHeadCommit = null;
+            state.previousBranch = null;
+            updateDetachedHeadStatus();
+            await loadCommits();
+            closeExitDetachedHeadModal();
+            setStatus(`Switched to branch: ${state.currentBranch}`, false);
+            setTimeout(() => setStatus(""), 2000);
+          }
+        }
+      } else {
+        // Checkout failed
+        state.isCheckingOutBranch = false;
+        setStatus(result.error || result.message || "Failed to checkout branch", true);
+        closeExitDetachedHeadModal();
+      }
+    } catch (err) {
+      console.error('Failed to checkout branch:', err);
+      state.isCheckingOutBranch = false;
+      setStatus("Failed to checkout branch: " + (err.message || err), true);
+      closeExitDetachedHeadModal();
+    } finally {
+      // Re-enable the button
+      if (exitDetachedHeadYes) {
+        exitDetachedHeadYes.disabled = false;
+        exitDetachedHeadYes.textContent = "Yes";
       }
     }
   });
@@ -4122,6 +4568,13 @@ repoSelect.addEventListener("change", async e => {
 });
 
 branchSelect.addEventListener("change", async e => {
+  // Clear detached HEAD state when selecting a branch
+  if (state.detachedHeadCommit) {
+    state.detachedHeadCommit = null;
+    state.previousBranch = null;
+    updateDetachedHeadStatus();
+  }
+  
   const selectedBranch = e.target.value;
   state.currentBranch = selectedBranch || null;
   state.currentCommit = null;

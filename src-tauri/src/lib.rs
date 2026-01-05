@@ -65,6 +65,10 @@ pub fn run() {
             commands::git_ops::push_repo,
             commands::git_ops::stash_push,
             commands::git_ops::stash_pop,
+            commands::git_ops::checkout_commit,
+            commands::git_ops::checkout_branch,
+            commands::git_ops::get_previous_branch,
+            commands::git_ops::get_best_branch_to_checkout,
             // Rebase
             commands::rebase::get_rebase_preview,
             commands::rebase::post_rebase_plan,

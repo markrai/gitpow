@@ -149,6 +149,16 @@ impl GitRepository {
         self.run_git(&["stash", "apply", stash_ref])
     }
 
+    /// Checkout a specific commit (detached HEAD mode)
+    pub fn checkout_commit(&self, commit_sha: &str) -> Result<String> {
+        self.run_git(&["checkout", commit_sha])
+    }
+
+    /// Checkout a branch
+    pub fn checkout_branch(&self, branch_name: &str) -> Result<String> {
+        self.run_git(&["checkout", branch_name])
+    }
+
     /// Drop a specific stash by index
     pub fn stash_drop(&self, stash_ref: &str) -> Result<String> {
         self.run_git(&["stash", "drop", stash_ref])
@@ -158,6 +168,74 @@ impl GitRepository {
     pub fn get_current_branch(&self) -> Result<String> {
         let output = self.run_git(&["rev-parse", "--abbrev-ref", "HEAD"])?;
         Ok(output.trim().to_string())
+    }
+
+    /// Get the branch name from reflog before entering detached HEAD
+    /// Returns the branch name if found, None otherwise
+    /// This searches through reflog entries to find the most recent checkout from a branch
+    pub fn get_previous_branch_from_reflog(&self) -> Result<Option<String>> {
+        // Search through the last 50 reflog entries to find the most recent branch checkout
+        // This handles cases where user has switched to multiple commits
+        let output = match self.run_git(&["reflog", "-50", "--format=%gs"]) {
+            Ok(output) => output,
+            Err(_) => return Ok(None), // No reflog or error - return None
+        };
+        
+        // Parse each reflog entry line
+        for line in output.lines() {
+            let reflog_msg = line.trim();
+            if reflog_msg.is_empty() {
+                continue;
+            }
+            
+            // Look for "moving from" pattern in checkout messages
+            // Format: "checkout: moving from <branch> to <commit>"
+            // or "checkout: moving from <branch> to <branch>"
+            if let Some(from_pos) = reflog_msg.find("moving from ") {
+                let after_from = &reflog_msg[from_pos + 12..]; // Skip "moving from "
+                if let Some(to_pos) = after_from.find(" to ") {
+                    let branch_name = after_from[..to_pos].trim();
+                    
+                    // Validate it's a valid branch name (not a commit SHA, not "HEAD")
+                    // Reject if it's HEAD, a full SHA (40 hex chars), or a ref path
+                    if branch_name != "HEAD" 
+                        && !branch_name.starts_with("refs/")
+                        && (branch_name.len() != 40 || !branch_name.chars().all(|c| c.is_ascii_hexdigit())) // Not a full SHA
+                    {
+                        // Additional validation: check if it looks like a branch name
+                        // Branch names typically don't start with numbers and contain alphanumeric, -, _, /
+                        if !branch_name.is_empty() && !branch_name.chars().next().unwrap_or(' ').is_ascii_digit() {
+                            return Ok(Some(branch_name.to_string()));
+                        }
+                    }
+                }
+            }
+        }
+        
+        Ok(None)
+    }
+
+    /// Get the default branch (main, master, or first available branch)
+    /// Returns the branch name if found, None otherwise
+    pub fn get_default_branch(&self) -> Result<Option<String>> {
+        // Get all local branches
+        let branches = self.get_branch_info()?;
+        
+        if branches.branches.is_empty() {
+            return Ok(None);
+        }
+        
+        // Prefer main, then master, then first branch
+        if let Some(main) = branches.branches.iter().find(|b| b.as_str() == "main") {
+            return Ok(Some(main.clone()));
+        }
+        
+        if let Some(master) = branches.branches.iter().find(|b| b.as_str() == "master") {
+            return Ok(Some(master.clone()));
+        }
+        
+        // Return first branch as fallback
+        Ok(Some(branches.branches[0].clone()))
     }
 
     /// Check if current branch has an upstream configured

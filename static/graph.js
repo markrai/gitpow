@@ -1823,13 +1823,12 @@ function layoutCommits(commits) {
   }
 
   // Two modes:
-  // - Per-branch lanes (vertical All view): dedicate a lane per branch name.
-  // - Topology-based lanes (horizontal view or non-All): derive lanes from the commit graph.
+  // - Per-branch lanes (All view): dedicate a lane per branch name.
+  // - Topology-based lanes (non-All): derive lanes from the commit graph.
   const n = commits.length;
   const laneOf = new Array(n).fill(-1);
 
-  const usePerBranchLanes =
-    graphState.allBranchesMode && graphState.orientation === "vertical";
+  const usePerBranchLanes = graphState.allBranchesMode;
 
   if (usePerBranchLanes) {
     // --- Per-branch lanes ---------------------------------------------------

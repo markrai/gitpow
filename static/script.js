@@ -180,10 +180,8 @@ async function loadRepos() {
 
 // Conflict resolution functions are now loaded from conflicts.js module
 
-// Helper function to check if we're in graph view mode
-function isGraphMode() {
-  return state.historyMode === "neo-vertical" || state.historyMode === "neo-horizontal";
-}
+// Note: isGraphMode is now in view-mode.js
+// Function is exported to window and available globally
 
 // Check if a branch is active based on filter settings
 function isBranchActive(branchName, metadata) {
@@ -2066,104 +2064,8 @@ async function renderNeoFileList() {
   }
 }
 
-// Helper function to switch UI between graph and other views
-function switchViewMode(isNeo) {
-  const timeline3d = document.getElementById("timeline3d");
-  const helixControls = document.getElementById("helixControls");
-  const filesPanel = document.querySelector(".panel:nth-child(2)");
-  const filesPanelHeader = document.getElementById("filesPanelHeader");
-  const diffPanel = document.getElementById("diffPanel");
-  const layout = document.querySelector(".layout");
-  const graphContainer = document.getElementById("graphContainer");
-  const commitsPanel = document.querySelector(".panel:first-child");
-  
-  if (isNeo) {
-    // Hide panels and show WebGL graph view
-    if (commitsPanel) commitsPanel.style.display = "none";
-    commitList.style.display = "none";
-    if (timeline3d) timeline3d.style.display = "none";
-    if (helixControls) helixControls.style.display = "none";
-    if (diffPanel) diffPanel.style.display = "none";
-    if (filesPanel) filesPanel.style.display = "none";
-    if (filesPanelHeader) filesPanelHeader.style.display = "none";
-    if (layout) layout.style.display = "none";
-    
-    // Hide commit canvas sections in graph views
-    if (stagedCommitSection) stagedCommitSection.style.display = "none";
-    if (graphContainer) {
-      // Position graph container to start right below toolbar using fixed positioning
-      const toolbar = document.querySelector(".toolbar");
-      if (toolbar) {
-        // Get the toolbar's actual bottom position including border
-        const toolbarRect = toolbar.getBoundingClientRect();
-        const toolbarBottom = toolbarRect.bottom;
-        graphContainer.style.position = "fixed";
-        graphContainer.style.top = toolbarBottom + "px";
-        graphContainer.style.left = "0";
-        graphContainer.style.right = "0";
-        graphContainer.style.bottom = "0";
-      } else {
-        graphContainer.style.top = "56px";
-      }
-      graphContainer.style.display = "block";
-    }
-    
-    // Stop polling when switching to graph views
-    stopStatusPolling();
-  } else {
-    // Show panels and hide graph view
-    if (commitsPanel) commitsPanel.style.display = "";
-    commitList.style.display = "";
-    if (graphContainer) graphContainer.style.display = "none";
-    if (filesPanelHeader) filesPanelHeader.style.display = "";
-    if (layout) layout.style.display = "";
-    if (layout) layout.style.gridTemplateColumns = "";
-    
-    // Show commit canvas sections in Activity view
-    if (stagedCommitSection) stagedCommitSection.style.display = "";
-    
-    // Show inner sections (they will be populated by loadStatus)
-    if (unstagedSection) unstagedSection.style.display = "";
-    if (stagedSection) stagedSection.style.display = "";
-    if (commitForm) commitForm.style.display = "";
-    
-    // Load status to populate commit canvas sections
-    loadStatus();
-    
-    // Start polling status for real-time updates (every 2 seconds)
-    startStatusPolling();
-  }
-}
-
-function startStatusPolling() {
-  // Clear any existing interval
-  stopStatusPolling();
-  
-  // Only poll if in Activity view
-  if (isGraphMode()) return;
-  
-  // Poll every 2 seconds
-  statusPollInterval = setInterval(async () => {
-    if (!isGraphMode() && state.currentRepo) {
-      try {
-        await loadStatus();
-      } catch (e) {
-        // Silently fail - don't spam errors for polling
-        console.debug("Status poll failed:", e);
-      }
-    } else {
-      // Stop polling if we switched to graph view
-      stopStatusPolling();
-    }
-  }, 2000);
-}
-
-function stopStatusPolling() {
-  if (statusPollInterval) {
-    clearInterval(statusPollInterval);
-    statusPollInterval = null;
-  }
-}
+// Note: switchViewMode, startStatusPolling, and stopStatusPolling are now in view-mode.js
+// Functions are exported to window and available globally
 
 // Clean up polling on page unload
 window.addEventListener("beforeunload", () => {
@@ -2808,153 +2710,20 @@ async function renderCommitList() {
   }
 }
 
-// Keyboard navigation for commits with Up/Down arrows
-function moveCommitSelection(delta) {
-  if (!state.filteredCommits.length) return;
-  let idx = -1;
-  if (state.currentCommit) {
-    idx = state.filteredCommits.findIndex(c => c.sha === state.currentCommit.sha);
-  }
-  if (idx === -1) {
-    idx = 0;
-  } else {
-    idx = idx + delta;
-    if (idx < 0) idx = 0;
-    if (idx >= state.filteredCommits.length) idx = state.filteredCommits.length - 1;
-  }
-  const next = state.filteredCommits[idx];
-  if (!next || (state.currentCommit && next.sha === state.currentCommit.sha)) return;
-  state.currentCommit = next;
-  updateActiveCommitState();
-  loadFilesForCommitDebounced();
-  updateCommitDetails(next);
-}
+// Note: moveCommitSelection, getCommitSequenceNumber, and pageCommitSelection are now in commit-navigation.js
+// Functions are exported to window and available globally
 
-// Compute 1-based commit sequence number where #1 is the oldest commit
-// in the repository (for the current branch), based on Activity view data.
-// The newest commit gets the highest number (= total commits).
-function getCommitSequenceNumber(commitSha) {
-  const commitsArr = state.commits || [];
-  if (!commitsArr.length || !commitSha) return null;
+// Note: updateActiveCommitState is now in commit-navigation.js
+// Function is exported to window and available globally
 
-  const idx = commitsArr.findIndex((c) => c.sha === commitSha);
-  if (idx === -1) return null;
-
-  // totalCommits is the best estimate of total history length for this branch.
-  // When we only loaded a window (global cap), commitsArr.length < totalCommits.
-  const total =
-    typeof state.totalCommits === "number" && state.totalCommits > 0
-      ? state.totalCommits
-      : commitsArr.length;
-
-  // commitsArr is ordered newest-first (idx 0 = newest, idx N = oldest in window)
-  // Newest commit should be #total, oldest in window should be #(total - visibleCount + 1)
-  // So: commit at idx gets number (total - idx)
-  return total - idx;
-}
-
-// Page-wise navigation for commits (Page Up / Page Down)
-function pageCommitSelection(direction) {
-  if (!commitList || !state.filteredCommits.length) return;
-  const items = commitList.querySelectorAll(".commit-item");
-  if (!items.length) return;
-
-  // Use the active item to estimate row height; fall back to first item.
-  const active =
-    commitList.querySelector(".commit-item.active") || items[0];
-  const itemHeight = active.offsetHeight || 24;
-  const viewHeight = commitList.clientHeight || itemHeight * 10;
-
-  // Approximate how many rows fit in the viewport and step by that.
-  let step = Math.floor(viewHeight / itemHeight) - 1;
-  if (!Number.isFinite(step) || step <= 0) step = 10;
-
-  moveCommitSelection(direction * step);
-}
-
-// Track the previously active commit element to avoid O(n) DOM traversal
-let previousActiveCommitElement = null;
-
-// Update only the active commit state without re-rendering the entire list
-function updateActiveCommitState() {
-  if (!commitList || !state.currentCommit) return;
-
-  // Remove active state from previous element only (O(1) instead of O(n))
-  if (previousActiveCommitElement) {
-    previousActiveCommitElement.classList.remove('active');
-    previousActiveCommitElement.style.background = '';
-  }
-
-  // Find the new active commit by data-sha attribute
-  const activeItem = commitList.querySelector(`[data-sha="${state.currentCommit.sha}"]`);
-
-  if (activeItem) {
-    // Check if commit is inside a collapsed month container
-    const monthContainer = activeItem.closest('.month-container');
-    if (monthContainer) {
-      const commitsContainer = monthContainer.querySelector('.month-commits');
-      const chevron = monthContainer.querySelector('.month-chevron');
-      const monthKey = monthContainer.dataset.monthKey;
-
-      // If the commits container is hidden (collapsed), expand it and render its commits
-      if (commitsContainer && commitsContainer.style.display === 'none') {
-        state.expandedMonths.add(monthKey);
-        if (chevron) {
-          chevron.textContent = "▼";
-        }
-        commitsContainer.style.display = 'block';
-        // Trigger lazy render if needed
-        if (commitsContainer._commits && !commitsContainer._rendered) {
-          // The month header click handler has the renderMonthCommits function
-          // For now, just set _rendered to trigger re-query
-        }
-      }
-    }
-
-    // Add active class
-    activeItem.classList.add('active');
-
-    // Apply active commit background color
-    const rgb = hexToRgb(colorSettings.activeCommit);
-    activeItem.style.background = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
-
-    // Store reference for next update
-    previousActiveCommitElement = activeItem;
-
-    // Scroll to ensure active commit is visible
-    if (typeof activeItem.scrollIntoView === 'function') {
-      activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  } else {
-    previousActiveCommitElement = null;
-  }
-}
-
-// Update commit details panel with commit information
-function updateCommitDetails(commit) {
-  // This function is kept for API compatibility but the UI elements no longer exist
-  // Commit details are now displayed inline in the commit list items
-  if (!commit) return;
-}
+// Note: updateCommitDetails is now in commit-navigation.js
+// Function is exported to window and available globally
 
 // AbortController for cancelling pending file list requests
 let currentFilesAbortController = null;
 
-// Debounce timer for rapid commit selection
-let commitSelectionDebounceTimer = null;
-const COMMIT_SELECTION_DEBOUNCE_MS = 50; // 50ms debounce for rapid clicks
-
-// Debounced wrapper for loadFilesForCommit - prevents overwhelming the backend
-// when user rapidly clicks through commits
-function loadFilesForCommitDebounced() {
-  if (commitSelectionDebounceTimer) {
-    clearTimeout(commitSelectionDebounceTimer);
-  }
-  commitSelectionDebounceTimer = setTimeout(() => {
-    commitSelectionDebounceTimer = null;
-    loadFilesForCommit();
-  }, COMMIT_SELECTION_DEBOUNCE_MS);
-}
+// Note: commitSelectionDebounceTimer and loadFilesForCommitDebounced are now in commit-navigation.js
+// Functions are exported to window and available globally
 
 async function loadFilesForCommit() {
   // Cancel any pending file list request
@@ -3054,45 +2823,8 @@ async function loadFilesForCommit() {
   }
 }
 
-// Track the previously active file element to avoid O(n) DOM traversal
-let previousActiveFileElement = null;
-
-// Lightweight update of file active state without full re-render
-function updateActiveFileState(newFilePath) {
-  if (!fileList) return;
-
-  // Remove active state from previous element only (O(1) instead of O(n))
-  if (previousActiveFileElement) {
-    previousActiveFileElement.classList.remove('active');
-    previousActiveFileElement.style.background = '';
-  }
-
-  // Find and activate the new file
-  const newActiveItem = fileList.querySelector(`[data-file-path="${CSS.escape(newFilePath)}"]`);
-  if (newActiveItem) {
-    newActiveItem.classList.add('active');
-
-    // Apply status-based background color
-    const fileInfo = state.changedFiles?.find(f => f.path === newFilePath);
-    if (fileInfo) {
-      let rgb;
-      if (fileInfo.status === 'added') {
-        rgb = hexToRgb(colorSettings.addedFile);
-      } else if (fileInfo.status === 'removed') {
-        rgb = hexToRgb(colorSettings.removedFile);
-      } else if (fileInfo.status === 'modified') {
-        rgb = hexToRgb(colorSettings.modifiedFile);
-      }
-      if (rgb) {
-        newActiveItem.style.background = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
-      }
-    }
-
-    previousActiveFileElement = newActiveItem;
-  } else {
-    previousActiveFileElement = null;
-  }
-}
+// Note: updateActiveFileState is now in file-navigation.js
+// Function is exported to window and available globally
 
 function renderFileList() {
   if (!fileList) return;
@@ -3447,113 +3179,8 @@ async function loadFileCreationInfoBatch(batchItems) {
   }
 }
 
-// Switch to Activity View and select a commit by SHA
-async function switchToActivityView(commitSha) {
-  const currentMode = state.historyMode || "activity";
-  const isNeo = currentMode === "neo-vertical" || currentMode === "neo-horizontal";
-  
-  if (isNeo) {
-    // Switch to Activity View
-    state.historyMode = "activity";
-    
-    // Update button appearance
-    const viewModeToggle = document.getElementById("viewModeToggle");
-    if (viewModeToggle) {
-      viewModeToggle.textContent = "Activity";
-      viewModeToggle.dataset.mode = "activity";
-      viewModeToggle.title = "Activity: Active branch + main + merges";
-      viewModeToggle.setAttribute("aria-label", "Activity view mode");
-    }
-    
-    // If switching away from graph view and "__ALL__" is selected, reset to a real branch
-    if (state.currentBranch === "__ALL__") {
-      state.currentBranch = state.branches[0] || null;
-    }
-    
-    // Switch UI immediately
-    switchViewMode(false);
-    
-    // Render immediately (non-blocking)
-    renderCommitList();
-
-    // Use requestAnimationFrame to ensure UI update is visible before starting async operations
-    await new Promise(resolve => requestAnimationFrame(resolve));
-
-    // Refresh branch dropdown for Activity view without refetching from the server
-    applyActiveBranchFilter();
-    if (branchLabelEl) {
-      branchLabelEl.textContent = state.currentBranch
-        ? (state.currentBranch === "__ALL__" ? "All" : state.currentBranch)
-        : "";
-    }
-
-    // Reload commits using the cache-aware path (will filter __ALL__ if available)
-    await loadCommits();
-  }
-  
-  // Select the commit (this will work even if we're already in Activity View)
-  highlightCommitBySha(commitSha);
-}
-
-// Highlight a commit by SHA in the commits pane
-function highlightCommitBySha(commitSha, filePathToSelect = null) {
-  // Find the commit in the current commits list
-  const commit = state.commits.find(c => c.sha === commitSha);
-  if (!commit) {
-    // If not in current list, we might need to load more commits or switch view
-    setStatus("Commit not found in current view", true);
-    return;
-  }
-  
-  // Set as current commit
-  state.currentCommit = commit;
-  
-  // Update active state without full re-render
-  updateActiveCommitState();
-  updateCommitDetails(commit);
-  
-  // Scroll to the commit with center alignment (different from updateActiveCommitState's 'nearest')
-  const commitListEl = document.getElementById("commitList");
-  if (commitListEl) {
-    const commitElement = commitListEl.querySelector(`[data-sha="${commitSha}"]`);
-    if (commitElement) {
-      commitElement.scrollIntoView({ behavior: "smooth", block: "center" });
-    } else {
-      // If not found, try to find by class
-      const activeItem = commitListEl.querySelector(".item.active");
-      if (activeItem) {
-        activeItem.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }
-  }
-  
-  // Load files for this commit
-  loadFilesForCommit().then(() => {
-    // After files are loaded, select the specified file if provided
-    if (filePathToSelect) {
-      // Wait a bit for the file list to render
-      setTimeout(() => {
-        state.currentFile = filePathToSelect;
-        renderFileList();
-        loadCommitFileDiff();
-        
-        // Scroll to the file in the file list
-        const fileList = document.getElementById("fileList");
-        if (fileList) {
-          const fileElement = fileList.querySelector(`[data-file-path="${filePathToSelect}"]`);
-          if (fileElement) {
-            fileElement.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }
-      }, 200);
-    }
-  });
-}
-
-// Expose functions globally for graph.js to use
-window.switchToActivityView = switchToActivityView;
-window.highlightCommitBySha = highlightCommitBySha;
-window.switchViewMode = switchViewMode;
+// Note: switchToActivityView and highlightCommitBySha are now in commit-navigation.js
+// Functions are exported to window and available globally
 
 // isImageFile is now loaded from utils.js module
 
@@ -5564,204 +5191,9 @@ if (viewModeToggle) {
 
 // Resize handles code moved to js/resize-handles.js
 
-async function loadStatus() {
-  if (!state.currentRepo) return;
-  try {
-    const statusData = await api("/api/repos/" + encodeURIComponent(state.currentRepo) + "/status");
-    state.status = statusData;
-    
-    // Show the inner sections when status is loaded (only in Activity view)
-    if (!isGraphMode()) {
-      if (unstagedSection) unstagedSection.style.display = "";
-      if (stagedSection) stagedSection.style.display = "";
-      if (commitForm) commitForm.style.display = "";
-    }
-    
-    renderStatusLists();
-  } catch (e) {
-    setStatus(e.message, true);
-  }
-}
-
-function renderStatusLists() {
-  unstagedList.innerHTML = "";
-  stagedList.innerHTML = "";
-  const unstaged = [];
-  const staged = [];
-  
-  state.status.files.forEach(file => {
-    // Files can be both staged and unstaged (e.g., modified, staged, then modified again)
-    // Prioritize unstaged - if a file has unstaged changes, it goes to unstaged section
-    if (file.unstaged || file.type === "untracked") {
-      unstaged.push(file);
-    } else if (file.staged) {
-      // Only add to staged if it's not also unstaged
-      staged.push(file);
-    }
-  });
-
-  unstagedCount.textContent = unstaged.length;
-  stagedCount.textContent = staged.length;
-
-  unstaged.forEach(file => {
-    const div = document.createElement("div");
-    div.className = "canvas-file-item";
-    div.innerHTML = `<span style="color: #ef4444;">${file.path}</span><span class="canvas-file-status">${file.type}</span>`;
-    div.addEventListener("click", () => loadFileDiff(file.path, false));
-    // Right-click to stage entire file
-    div.addEventListener("contextmenu", async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await api("/api/repos/" + encodeURIComponent(state.currentRepo) + "/stage", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: file.path })
-        });
-        await loadStatus();
-        if (state.currentDiffFile === file.path) {
-          await loadFileDiff(file.path, true);
-        }
-      } catch (err) {
-        setStatus(err.message, true);
-      }
-    });
-    unstagedList.appendChild(div);
-  });
-
-  staged.forEach(file => {
-    const div = document.createElement("div");
-    div.className = "canvas-file-item";
-    div.innerHTML = `<span style="color: #22c55e;">${file.path}</span><span class="canvas-file-status">${file.type}</span>`;
-    div.addEventListener("click", () => loadFileDiff(file.path, true));
-    // Right-click to unstage entire file
-    div.addEventListener("contextmenu", async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await api("/api/repos/" + encodeURIComponent(state.currentRepo) + "/unstage", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: file.path })
-        });
-        await loadStatus();
-        if (state.currentDiffFile === file.path) {
-          await loadFileDiff(file.path, false);
-        }
-      } catch (err) {
-        setStatus(err.message, true);
-      }
-    });
-    stagedList.appendChild(div);
-  });
-
-  updateCommitButton();
-}
-
-async function loadFileDiff(filePath, isStaged) {
-  state.currentDiffFile = filePath;
-  diffView.style.display = "grid";
-  setStatus("Loading diff...");
-  try {
-    const unstagedData = await api("/api/repos/" + encodeURIComponent(state.currentRepo) + "/diff?path=" + encodeURIComponent(filePath) + "&staged=false").catch(() => ({ diff: "", hunks: [] }));
-    const stagedData = await api("/api/repos/" + encodeURIComponent(state.currentRepo) + "/diff?path=" + encodeURIComponent(filePath) + "&staged=true").catch(() => ({ diff: "", hunks: [] }));
-    
-    state.unstagedDiffData = unstagedData;
-    state.stagedDiffData = stagedData;
-    
-    renderDiff(unstagedDiff, unstagedData, false, filePath);
-    renderDiff(stagedDiff, stagedData, true, filePath);
-    setStatus("");
-  } catch (e) {
-    setStatus(e.message, true);
-  }
-}
-
-function renderDiff(container, diffData, isStaged, filePath) {
-  container.innerHTML = "";
-  if (!diffData || !diffData.hunks || diffData.hunks.length === 0) {
-    container.textContent = "No changes";
-    return;
-  }
-
-  diffData.hunks.forEach((hunk, idx) => {
-    const hunkDiv = document.createElement("div");
-    hunkDiv.className = "diff-hunk" + (isStaged ? " staged" : "");
-    hunkDiv.dataset.hunkIndex = idx;
-    
-    const header = document.createElement("div");
-    header.style.fontSize = "10px";
-    header.style.color = "#6b7280";
-    header.style.marginBottom = "4px";
-    header.textContent = `@@ -${hunk.oldStart},${hunk.oldCount} +${hunk.newStart},${hunk.newCount} @@`;
-    hunkDiv.appendChild(header);
-
-    const linesDiv = document.createElement("div");
-    hunk.lines.forEach(line => {
-      const lineDiv = document.createElement("div");
-      lineDiv.className = "diff-line";
-      if (line.startsWith("+") && !line.startsWith("+++")) {
-        lineDiv.classList.add("added");
-      } else if (line.startsWith("-") && !line.startsWith("---")) {
-        lineDiv.classList.add("removed");
-      } else {
-        lineDiv.classList.add("context");
-      }
-      lineDiv.textContent = line;
-      linesDiv.appendChild(lineDiv);
-    });
-    hunkDiv.appendChild(linesDiv);
-
-    if (!isStaged) {
-      hunkDiv.addEventListener("click", () => stageHunk(filePath, idx));
-    } else {
-      hunkDiv.addEventListener("click", () => unstageHunk(filePath, idx));
-    }
-
-    container.appendChild(hunkDiv);
-  });
-}
-
-async function stageHunk(filePath, hunkIndex) {
-  try {
-    await api("/api/repos/" + encodeURIComponent(state.currentRepo) + "/stage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: filePath, hunks: [hunkIndex] })
-    });
-    state.stagedHunks.add(`${filePath}:${hunkIndex}`);
-    await loadStatus();
-    if (state.currentDiffFile === filePath) {
-      await loadFileDiff(filePath, false);
-    }
-  } catch (e) {
-    setStatus(e.message, true);
-  }
-}
-
-async function unstageHunk(filePath, hunkIndex) {
-  try {
-    await api("/api/repos/" + encodeURIComponent(state.currentRepo) + "/unstage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: filePath, hunks: [hunkIndex] })
-    });
-    state.stagedHunks.delete(`${filePath}:${hunkIndex}`);
-    await loadStatus();
-    if (state.currentDiffFile === filePath) {
-      await loadFileDiff(filePath, true);
-    }
-  } catch (e) {
-    setStatus(e.message, true);
-  }
-}
-
-function updateCommitButton() {
-  const hasStaged = state.status.files && state.status.files.some(f => f.staged);
-  // Check subject field (required) - use new fields if available, fallback to old field
-  const subjectValue = commitMessageSubject ? commitMessageSubject.value.trim() : (commitMessage ? commitMessage.value.trim() : "");
-  commitButton.disabled = !hasStaged || !subjectValue;
-}
+// Note: All staging functions (loadStatus, renderStatusLists, loadFileDiff, renderDiff, 
+// stageHunk, unstageHunk, updateCommitButton) are now in staging.js
+// Functions are exported to window and available globally
 
 // Add event listeners for both subject and description fields
 if (commitMessageSubject) {
@@ -5786,84 +5218,8 @@ if (commitMessage) {
   commitMessage.addEventListener("input", updateCommitButton);
 }
 
-// Guard to prevent concurrent refresh operations
-let isRefreshingCommits = false;
-
-// Efficiently update commits list after a new commit
-async function refreshCommitsAfterCommit() {
-  if (!state.currentRepo || !state.currentBranch) return;
-  
-  // Prevent concurrent calls
-  if (isRefreshingCommits) {
-    console.log("[refreshCommitsAfterCommit] Already refreshing, skipping");
-    return;
-  }
-  
-  isRefreshingCommits = true;
-  
-  try {
-    // For graph views, do a full reload since graph structure might change
-    if (isGraphMode()) {
-      await loadCommits();
-      return;
-    }
-    
-    // For Activity view, just fetch the latest commit and prepend it
-    const branchParam = state.currentBranch === "__ALL__" ? "HEAD" : state.currentBranch;
-    const mode = state.historyMode || "activity";
-    const response = await api(
-      "/api/repos/" +
-        encodeURIComponent(state.currentRepo) +
-        "/commits?branch=" +
-        encodeURIComponent(branchParam) +
-        "&mode=" +
-        encodeURIComponent(mode) +
-        "&limit=1"
-    );
-    
-    if (Array.isArray(response) && response.length > 0) {
-      const newCommit = response[0];
-      
-      // Check if this commit is already in the commits list
-      const existsInCommits = state.commits.some(c => c.sha === newCommit.sha);
-      
-      if (!existsInCommits) {
-        // Prepend the new commit to the lists
-        state.commits.unshift(newCommit);
-        
-        // Mark commits for Activity view (will process all commits including the new one)
-        markCommitsActiveStatus();
-        
-        // Apply any active filters (this will rebuild filteredCommits from commits)
-        applyCommitFilter();
-        
-        // Increment total count if we have it
-        if (state.totalCommits !== null) {
-          state.totalCommits += 1;
-        }
-        
-        // Update the commit count display
-        updateCommitCountDisplay();
-        
-        // Re-render the commit list (this is efficient - just adds one item at the top)
-        renderCommitList();
-      } else {
-        // Commit already exists, do a full refresh to ensure consistency
-        console.log("[refreshCommitsAfterCommit] Commit already exists, doing full refresh");
-        await loadCommits();
-      }
-    } else {
-      // No commits returned, do a full refresh
-      await loadCommits();
-    }
-  } catch (e) {
-    console.error("Error refreshing commits after commit:", e);
-    // Fallback to full reload on error
-    await loadCommits();
-  } finally {
-    isRefreshingCommits = false;
-  }
-}
+// Note: isRefreshingCommits and refreshCommitsAfterCommit are now in staging.js
+// Functions are exported to window and available globally
 
 commitButton.addEventListener("click", async () => {
   // Get commit message from subject and description fields

@@ -40,6 +40,7 @@ const searchInput = document.getElementById("searchInput");
 const contextMenu = document.getElementById("contextMenu");
 const contextMenuOpenExplorer = document.getElementById("contextMenuOpenExplorer");
 const contextMenuViewGitHub = document.getElementById("contextMenuViewGitHub");
+const contextMenuCopyCommitId = document.getElementById("contextMenuCopyCommitId");
 
 // ============================================================================
 // Status and Settings
@@ -117,6 +118,7 @@ window.searchInput = searchInput;
 window.contextMenu = contextMenu;
 window.contextMenuOpenExplorer = contextMenuOpenExplorer;
 window.contextMenuViewGitHub = contextMenuViewGitHub;
+window.contextMenuCopyCommitId = contextMenuCopyCommitId;
 
 // Status/Settings
 window.statusEl = statusEl;

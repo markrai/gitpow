@@ -1801,6 +1801,14 @@ function renderNeoCommits() {
     const sha = document.createElement("span");
     sha.style.cssText = "font-family: monospace; color: #6b7280;";
     sha.textContent = c.sha.slice(0, 7);
+    // Add context menu handler to SHA element for copying commit ID
+    sha.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      state.contextMenuCommit = c;
+      state.contextMenuFile = null;
+      showContextMenu(e.clientX, e.clientY);
+    });
     const author = document.createElement("span");
     author.textContent = c.author;
     const date = document.createElement("span");
@@ -2415,6 +2423,14 @@ async function renderCommitList() {
           const sha = document.createElement("span");
           sha.className = "commit-sha";
           sha.textContent = c.sha.slice(0, 7);
+          // Add context menu handler to SHA element for copying commit ID
+          sha.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            state.contextMenuCommit = c;
+            state.contextMenuFile = null;
+            showContextMenu(e.clientX, e.clientY);
+          });
 
           const authorContainer = document.createElement("span");
           authorContainer.className = "commit-author";
@@ -2563,6 +2579,14 @@ async function renderCommitList() {
       const sha = document.createElement("span");
       sha.className = "commit-sha";
       sha.textContent = c.sha.slice(0, 7);
+      // Add context menu handler to SHA element for copying commit ID
+      sha.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        state.contextMenuCommit = c;
+        state.contextMenuFile = null;
+        showContextMenu(e.clientX, e.clientY);
+      });
 
       const authorContainer = document.createElement("span");
       authorContainer.className = "commit-author";
@@ -3755,6 +3779,9 @@ function showContextMenu(x, y) {
       contextMenuViewGitHub.style.display = "none";
     }
   }
+  if (contextMenuCopyCommitId) {
+    contextMenuCopyCommitId.style.display = state.contextMenuCommit ? "block" : "none";
+  }
   
   contextMenu.style.display = "block";
   contextMenu.style.left = x + "px";
@@ -3862,6 +3889,46 @@ if (contextMenuViewGitHub) {
       setStatus(`Failed to open GitHub profile: ${errorMessage}`, true);
     }
     hideContextMenu();
+  });
+}
+
+// Handle copy commit ID
+if (contextMenuCopyCommitId) {
+  contextMenuCopyCommitId.addEventListener("click", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!state.contextMenuCommit) {
+      hideContextMenu();
+      return;
+    }
+    
+    const fullCommitId = state.contextMenuCommit.sha;
+    
+    try {
+      // Use the Clipboard API to copy the commit ID
+      await navigator.clipboard.writeText(fullCommitId);
+      setStatus(`Copied commit ID: ${fullCommitId}`, false);
+      hideContextMenu();
+    } catch (err) {
+      console.error('Failed to copy commit ID:', err);
+      // Fallback for older browsers or if clipboard API fails
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = fullCommitId;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        setStatus(`Copied commit ID: ${fullCommitId}`, false);
+        hideContextMenu();
+      } catch (fallbackErr) {
+        setStatus("Failed to copy commit ID: " + (fallbackErr.message || fallbackErr), true);
+        hideContextMenu();
+      }
+    }
   });
 }
 

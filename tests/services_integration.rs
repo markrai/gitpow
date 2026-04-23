@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use git2::{Repository, Signature};
 use tempfile::TempDir;
 
+use gitpow_rust::git::repository::GitRepository;
 use gitpow_rust::services::{commits, git_ops};
 
 /// Build a minimal git repo with one commit and return the temp handle +
@@ -99,6 +100,85 @@ fn stash_pop_reports_no_stashes_on_empty_stack() {
     assert!(!response.success);
     assert_eq!(response.message.as_deref(), Some("No stashes to pop"));
     assert!(response.error.is_none());
+}
+
+#[test]
+fn get_commit_changed_files_returns_initial_readme() {
+    let (_dir, repo_path) = init_fixture_repo();
+
+    let head_sha = head_sha(&repo_path);
+    let repo = GitRepository::open(&repo_path).expect("open repo");
+    let changes = repo
+        .get_commit_changed_files(&head_sha)
+        .expect("get_commit_changed_files should succeed");
+
+    assert_eq!(changes.len(), 1, "expected exactly one changed file: {:#?}", changes);
+    assert_eq!(changes[0].path, "README.md");
+    assert_eq!(
+        changes[0].status, "added",
+        "initial commit's README should be reported as added"
+    );
+}
+
+#[test]
+fn get_file_diff_returns_hunk_for_modified_file() {
+    let (_dir, repo_path) = init_fixture_repo();
+
+    // Add a second commit that modifies README.md so we have a real before/after.
+    let modified_sha = {
+        let repo = Repository::open(&repo_path).expect("reopen repo");
+
+        let readme = repo_path.join("README.md");
+        fs::write(&readme, "hello\nworld\n").expect("modify README");
+
+        let mut index = repo.index().expect("index");
+        index.add_path(Path::new("README.md")).expect("add path");
+        index.write().expect("write index");
+        let tree_oid = index.write_tree().expect("write tree");
+        let tree = repo.find_tree(tree_oid).expect("find tree");
+
+        let sig = Signature::now("GitPow Test", "test@example.com").expect("signature");
+        let parent = repo
+            .head()
+            .expect("head")
+            .peel_to_commit()
+            .expect("peel parent");
+
+        let oid = repo
+            .commit(Some("HEAD"), &sig, &sig, "add world line", &tree, &[&parent])
+            .expect("commit");
+        oid.to_string()
+    };
+
+    let repo = GitRepository::open(&repo_path).expect("open repo");
+    let diff = repo
+        .get_file_diff(&modified_sha, "README.md")
+        .expect("get_file_diff should succeed");
+
+    assert_eq!(diff.file_path, "README.md");
+    assert!(
+        !diff.hunks.is_empty(),
+        "modified file should yield at least one hunk: {:#?}",
+        diff
+    );
+    assert!(
+        !diff.diff.is_empty(),
+        "modified file should produce a non-empty patch: {:#?}",
+        diff
+    );
+    assert!(
+        diff.diff.contains("+world"),
+        "patch should include the added line, got: {}",
+        diff.diff
+    );
+}
+
+/// Resolve the current HEAD commit to a hex SHA string.
+fn head_sha(repo_path: &Path) -> String {
+    let repo = Repository::open(repo_path).expect("open repo");
+    let head = repo.head().expect("head");
+    let commit = head.peel_to_commit().expect("peel head commit");
+    commit.id().to_string()
 }
 
 #[test]

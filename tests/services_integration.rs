@@ -174,6 +174,76 @@ fn get_file_diff_returns_hunk_for_modified_file() {
 }
 
 #[test]
+fn count_all_commits_returns_one_for_initial_fixture() {
+    let (_dir, repo_path) = init_fixture_repo();
+
+    let repo = GitRepository::open(&repo_path).expect("open repo");
+    let count = repo
+        .count_all_commits()
+        .expect("count_all_commits should succeed");
+
+    assert_eq!(count, 1, "single-commit fixture should report exactly one commit");
+}
+
+#[test]
+fn get_commits_local_tags_walked_branch_spec() {
+    let (_dir, repo_path) = init_fixture_repo();
+
+    let repo = GitRepository::open(&repo_path).expect("open repo");
+    let commits = repo
+        .get_commits_local("HEAD", 10)
+        .expect("get_commits_local should succeed");
+
+    assert_eq!(commits.len(), 1, "fixture has one commit: {:#?}", commits);
+    assert_eq!(
+        commits[0].branches,
+        vec!["HEAD".to_string()],
+        "get_commits_local must tag every returned commit with the walked spec"
+    );
+}
+
+#[test]
+fn get_current_branch_returns_initial_branch_for_fixture() {
+    let (_dir, repo_path) = init_fixture_repo();
+
+    let repo = GitRepository::open(&repo_path).expect("open repo");
+    let current = repo
+        .get_current_branch()
+        .expect("get_current_branch should succeed");
+
+    // Depending on the host's `init.defaultBranch` config, a fresh repo's
+    // first branch is either "master" (libgit2/older git default) or "main"
+    // (modern git default). Both are acceptable; detached HEAD / unborn
+    // states are not.
+    assert!(
+        current == "master" || current == "main",
+        "expected master or main, got {:?}",
+        current
+    );
+}
+
+#[test]
+fn get_branch_info_lists_initial_branch_as_current() {
+    let (_dir, repo_path) = init_fixture_repo();
+
+    let repo = GitRepository::open(&repo_path).expect("open repo");
+    let info = repo
+        .get_branch_info()
+        .expect("get_branch_info should succeed");
+
+    assert_eq!(
+        info.branches.len(),
+        1,
+        "fresh fixture should enumerate exactly one branch: {:#?}",
+        info.branches
+    );
+    assert_eq!(
+        info.current, info.branches[0],
+        "current branch should match the only enumerated branch"
+    );
+}
+
+#[test]
 fn fetch_all_is_a_noop_when_repo_has_no_remotes() {
     let (_dir, repo_path) = init_fixture_repo();
 

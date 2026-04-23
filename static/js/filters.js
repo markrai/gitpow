@@ -125,10 +125,11 @@ function applyActiveBranchFilter() {
     } else {
       window.state.currentBranch = null;
     }
-    // Reload commits with new branch
-    if (window.loadedCommitsKey !== undefined) {
-      window.loadedCommitsKey = null;
-    }
+    // Reload commits with new branch.
+    // loadedCommitsKey is a `let` in static/js/state.js (loaded earlier as a
+    // classic script); it is a shared top-level binding, not a window property,
+    // so it must be cleared by bare name, not via `window.loadedCommitsKey`.
+    loadedCommitsKey = null;
     if (window.loadCommits) {
       window.loadCommits();
     }

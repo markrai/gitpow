@@ -173,6 +173,17 @@ fn get_file_diff_returns_hunk_for_modified_file() {
     );
 }
 
+#[test]
+fn fetch_all_is_a_noop_when_repo_has_no_remotes() {
+    let (_dir, repo_path) = init_fixture_repo();
+
+    // Sanity check: a freshly-initialised repo really has zero remotes,
+    // so fetch_all should walk an empty list and return Ok(()).
+    let repo = GitRepository::open(&repo_path).expect("open repo");
+    repo.fetch_all()
+        .expect("fetch_all should be a no-op on a remoteless repo");
+}
+
 /// Resolve the current HEAD commit to a hex SHA string.
 fn head_sha(repo_path: &Path) -> String {
     let repo = Repository::open(repo_path).expect("open repo");

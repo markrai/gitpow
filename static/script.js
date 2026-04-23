@@ -28,10 +28,8 @@ if (branchSelect) {
 // Initialize color settings from state.js module
 applyColorSettings();
 
-// Local normalizePath function that uses the UI module's normalizePathForDisplay
-function normalizePath(value) {
-  return window.normalizePathForDisplay ? window.normalizePathForDisplay(value) : value;
-}
+// normalizePath (display wrapper over window.normalizePathForDisplay) lives in
+// static/js/helpers.js (loaded before script.js). Call sites here resolve via window.normalizePath.
 
 async function loadRepos() {
   // Initialize commit count state for Activity view
@@ -1567,30 +1565,8 @@ async function preloadAllBranchesCommits() {
 // Filter helpers (updateCommitCountDisplay, isCommitOnActiveBranch,
 // markCommitsActiveStatus, applyCommitFilter) live in static/js/filters.js.
 
-function getGraphSymbol(commit, index, allCommits) {
-  if (state.historyMode !== "full") return "";
-  // Simple graph visualization: | for main line, \ for merge, / for branch
-  if (commit.isMerge) return "\\";
-  if (commit.isHead || commit.isMain) return "|";
-  // Check if this commit is on a different branch path
-  const nextCommit = allCommits[index + 1];
-  if (nextCommit && nextCommit.parents && nextCommit.parents.length > 0) {
-    if (nextCommit.parents[0] === commit.sha) return "|";
-  }
-  return "|";
-}
-
-function getCommitFadeClass(commit) {
-  // Apply fading for merged branches in compact mode
-  if (commit.isHead || commit.isMain) return "";
-  // Fade commits that are on merged branches (not current or main)
-  const isOnCurrentBranch = commit.branches && Array.isArray(commit.branches) && commit.branches.some(b => b === state.currentBranch);
-  const isOnMainBranch = commit.isMain || (commit.branches && Array.isArray(commit.branches) && (commit.branches.includes("main") || commit.branches.includes("master")));
-  if (!isOnCurrentBranch && !isOnMainBranch && commit.branches && Array.isArray(commit.branches) && commit.branches.length > 0) {
-    return "faded-more";
-  }
-  return "";
-}
+// getGraphSymbol and getCommitFadeClass live in static/js/helpers.js (loaded before script.js).
+// Call sites here (e.g. renderCommitList) resolve via window.getGraphSymbol / window.getCommitFadeClass.
 
 // formatMonthHeader and getMonthKey are now loaded from utils.js module
 
@@ -1855,78 +1831,11 @@ window.addEventListener("beforeunload", () => {
   stopStatusPolling();
 });
 
-// Collapsible section functionality
-function toggleCollapse(sectionId, toggleButton) {
-  const section = document.getElementById(sectionId);
-  if (!section) return;
-  
-  const isCollapsed = section.classList.contains("collapsed");
-  if (isCollapsed) {
-    section.classList.remove("collapsed");
-    localStorage.setItem(`gitzada:${sectionId}-collapsed`, "false");
-  } else {
-    section.classList.add("collapsed");
-    localStorage.setItem(`gitzada:${sectionId}-collapsed`, "true");
-  }
-}
-
-function loadCollapseState(sectionId) {
-  const saved = localStorage.getItem(`gitzada:${sectionId}-collapsed`);
-  const section = document.getElementById(sectionId);
-  if (section && saved === "true") {
-    section.classList.add("collapsed");
-  }
-}
-
-// Initialize collapse functionality
-function initCollapsibleSections() {
-  if (diffSectionToggle && diffSection) {
-    diffSectionToggle.addEventListener("click", (e) => {
-      e.stopPropagation();
-      toggleCollapse("diffSection", diffSectionToggle);
-    });
-    
-    // Also allow clicking the header to toggle
-    const diffSectionHeader = diffSection.querySelector(".collapsible-header");
-    if (diffSectionHeader) {
-      diffSectionHeader.addEventListener("click", (e) => {
-        if (e.target !== diffSectionToggle && !diffSectionToggle.contains(e.target)) {
-          toggleCollapse("diffSection", diffSectionToggle);
-        }
-      });
-    }
-    
-    // Load saved state
-    loadCollapseState("diffSection");
-  }
-
-  if (stagedCommitSectionToggle && stagedCommitSection) {
-    stagedCommitSectionToggle.addEventListener("click", (e) => {
-      e.stopPropagation();
-      toggleCollapse("stagedCommitSection", stagedCommitSectionToggle);
-    });
-    
-    // Also allow clicking the header to toggle
-    const stagedCommitSectionHeader = stagedCommitSection.querySelector(".collapsible-header");
-    if (stagedCommitSectionHeader) {
-      stagedCommitSectionHeader.addEventListener("click", (e) => {
-        if (e.target !== stagedCommitSectionToggle && !stagedCommitSectionToggle.contains(e.target)) {
-          toggleCollapse("stagedCommitSection", stagedCommitSectionToggle);
-        }
-      });
-    }
-    
-    // Load saved state
-    loadCollapseState("stagedCommitSection");
-  }
-}
-
-// Initialize when DOM is ready
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initCollapsibleSections);
-} else {
-  initCollapsibleSections();
-}
+// Collapsible-section helpers (toggleCollapse, loadCollapseState, initCollapsibleSections)
+// and their single DOMContentLoaded bootstrap live in static/js/helpers.js. A previous duplicate
+// bootstrap here caused initCollapsibleSections to run twice, which bound every collapse
+// toggle/header listener twice; clicks fired toggleCollapse twice per interaction (flip then
+// flip back = visible no-op). Keep this file as consumer-only to preserve the fix.
 
 async function renderCommitList() {
   try {

@@ -386,11 +386,13 @@ function getAvatarUrl(email, author, size = 20) {
 // ============================================================================
 
 /**
- * Normalize path for cross-platform compatibility
+ * Normalize path for Windows (replaces forward slashes with backslashes, strips trailing backslash).
+ * Orphaned today (no callers); kept under an unambiguous name so future callers can opt in
+ * without colliding with helpers.js's display-oriented normalizePath.
  * @param {string} value - Path string
- * @returns {string} Normalized path
+ * @returns {string} Normalized Windows path
  */
-function normalizePath(value) {
+function normalizeWindowsPath(value) {
   if (!value) return value;
   // Replace forward slashes with backslashes for Windows
   let normalized = value.replace(/\//g, '\\');
@@ -433,5 +435,5 @@ window.getMemoryUsage = getMemoryUsage;
 window.getCacheUsage = getCacheUsage;
 window.getGitHubUsername = getGitHubUsername;
 window.getAvatarUrl = getAvatarUrl;
-window.normalizePath = normalizePath;
+window.normalizeWindowsPath = normalizeWindowsPath;
 window.isImageFile = isImageFile;

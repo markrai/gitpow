@@ -63,8 +63,11 @@ pub fn run() {
             // Git Operations
             commands::git_ops::pull_repo,
             commands::git_ops::push_repo,
+            commands::git_ops::stash_list,
             commands::git_ops::stash_push,
             commands::git_ops::stash_pop,
+            commands::git_ops::stash_apply,
+            commands::git_ops::stash_drop,
             commands::git_ops::checkout_commit,
             commands::git_ops::checkout_branch,
             commands::git_ops::get_previous_branch,

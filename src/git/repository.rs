@@ -7,7 +7,7 @@ use std::process::Command;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
-use crate::models::{BranchInfo, BranchMetadata, Commit, StashEntry};
+use crate::models::{BranchInfo, BranchMetadata, Commit};
 
 /// Run a git command in the specified directory and return stdout as a String.
 /// This is a standalone utility for handlers that don't need a full GitRepository.
@@ -110,44 +110,7 @@ impl GitRepository {
     }
 
     /// Stash current changes
-    pub fn stash_push(&self, message: Option<&str>) -> Result<String> {
-        match message {
-            Some(msg) => self.run_git(&["stash", "push", "-m", msg]),
-            None => self.run_git(&["stash", "push"]),
-        }
-    }
-
-    /// Pop the most recent stash
-    pub fn stash_pop(&self) -> Result<String> {
-        self.run_git(&["stash", "pop"])
-    }
-
-    /// List all stashes
-    pub fn stash_list(&self) -> Result<Vec<StashEntry>> {
-        let output = self.run_git(&["stash", "list", "--format=%gd%x1f%s%x1f%ai"])?;
-        let entries = output
-            .lines()
-            .filter(|line| !line.is_empty())
-            .filter_map(|line| {
-                let parts: Vec<&str> = line.split('\x1f').collect();
-                if parts.len() >= 3 {
-                    Some(StashEntry {
-                        index: parts[0].to_string(),
-                        message: parts[1].to_string(),
-                        date: parts[2].to_string(),
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect();
-        Ok(entries)
-    }
-
-    /// Apply a specific stash by index (e.g., "stash@{0}")
-    pub fn stash_apply(&self, stash_ref: &str) -> Result<String> {
-        self.run_git(&["stash", "apply", stash_ref])
-    }
+    // Stash operations live in `src/git/stash.rs`.
 
     /// Checkout a specific commit (detached HEAD mode)
     pub fn checkout_commit(&self, commit_sha: &str) -> Result<String> {
@@ -157,11 +120,6 @@ impl GitRepository {
     /// Checkout a branch
     pub fn checkout_branch(&self, branch_name: &str) -> Result<String> {
         self.run_git(&["checkout", branch_name])
-    }
-
-    /// Drop a specific stash by index
-    pub fn stash_drop(&self, stash_ref: &str) -> Result<String> {
-        self.run_git(&["stash", "drop", stash_ref])
     }
 
     /// Get the current branch name

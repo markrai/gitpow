@@ -50,7 +50,7 @@ async function loadRepos() {
 
   try {
     // Check if custom repos_root is stored in localStorage
-    const storedRootRaw = window.localStorage.getItem("gitzada:reposRoot");
+    const storedRootRaw = window.gpStorage.get("reposRoot");
     const customReposRoot = storedRootRaw ? normalizePath(storedRootRaw) : "";
     const apiUrl = customReposRoot
       ? `/api/repos?repos_root=${encodeURIComponent(customReposRoot)}`
@@ -108,7 +108,7 @@ async function loadRepos() {
     }
 
     // Try to restore last selected repo from localStorage
-    const lastRepoId = window.localStorage.getItem("gitzada:lastRepoId") || null;
+    const lastRepoId = window.gpStorage.get("lastRepoId") || null;
     let foundLast = false;
 
     repos.forEach((r, i) => {
@@ -4005,130 +4005,7 @@ if (exitDetachedHeadYes) {
   });
 }
 
-// Handle repos root folder selection
-if (reposRootButton) {
-  reposRootButton.addEventListener("click", () => {
-    openReposRootModal();
-  });
-}
-
-if (reposRootCloseButton) {
-  reposRootCloseButton.addEventListener("click", () => {
-    closeReposRootModal();
-  });
-}
-
-if (reposRootCancelButton) {
-  reposRootCancelButton.addEventListener("click", () => {
-    closeReposRootModal();
-  });
-}
-
-if (reposRootModal) {
-  // Close when clicking on dimmed backdrop
-  reposRootModal.addEventListener("click", (e) => {
-    if (e.target === reposRootModal) {
-      closeReposRootModal();
-    }
-  });
-}
-
-async function applyReposRootFromInput() {
-  if (!reposRootPathInput) return;
-
-  const raw = reposRootPathInput.value.trim();
-  const normalized = normalizePath(raw);
-
-  if (normalized) {
-    window.localStorage.setItem("gitzada:reposRoot", normalized);
-    window.localStorage.setItem("gitzada:reposRootOnboarded", "true");
-    await loadRepos();
-    setStatus(`Projects folder set to: ${normalized}`);
-  } else {
-    // Treat empty input as "stick with server default", but remember that user made a choice
-    window.localStorage.removeItem("gitzada:reposRoot");
-    window.localStorage.setItem("gitzada:reposRootOnboarded", "true");
-    await loadRepos();
-    setStatus("Projects folder cleared; using server default");
-  }
-
-  closeReposRootModal();
-}
-
-if (reposRootUseDefaultButton) {
-  reposRootUseDefaultButton.addEventListener("click", async () => {
-    try {
-      const config = await api("/api/config");
-      const serverRoot = normalizePath(config && config.reposRoot ? config.reposRoot : "");
-
-      if (serverRoot) {
-        window.localStorage.setItem("gitzada:reposRoot", serverRoot);
-      } else {
-        window.localStorage.removeItem("gitzada:reposRoot");
-      }
-      window.localStorage.setItem("gitzada:reposRootOnboarded", "true");
-
-      await loadRepos();
-      setStatus(
-        serverRoot
-          ? `Projects folder set to: ${serverRoot}`
-          : "Projects folder set to server default"
-      );
-    } catch (err) {
-      const message = err && err.message ? err.message : String(err);
-      setStatus("Failed to read server default projects folder: " + message, true);
-    }
-    closeReposRootModal();
-  });
-}
-
-if (reposRootSaveButton && reposRootPathInput) {
-  reposRootSaveButton.addEventListener("click", () => {
-    applyReposRootFromInput();
-  });
-
-  // Support pressing Enter inside the input to save
-  reposRootPathInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      applyReposRootFromInput();
-    }
-  });
-}
-
-if (reposRootBrowseButton && reposRootPathInput) {
-  reposRootBrowseButton.addEventListener("click", async () => {
-    console.log('Browse button clicked');
-    try {
-      console.log('Calling browse_projects_root...');
-      const result = await api("/api/browse/projects-root");
-      console.log('Browse result:', result);
-      if (result && result.path) {
-        const normalized = normalizePath(result.path);
-        reposRootPathInput.value = normalized;
-        await applyReposRootFromInput();
-      } else {
-        console.warn('Browse returned no path:', result);
-        setStatus("No folder selected", true);
-      }
-    } catch (e) {
-      console.error('Browse error:', e);
-      const message = e && e.message ? e.message : String(e);
-      const lower = message.toLowerCase();
-      if (lower.includes("not found") || lower.includes("404")) {
-        setStatus(
-          "The running server does not expose the folder picker endpoint. Restart it from this codebase (e.g. run.bat/dev.bat), or type the path manually.",
-          true
-        );
-      } else if (lower.includes("cancel")) {
-        // User cancelled the dialog; no need to surface an error
-        setStatus("", null);
-      } else {
-        setStatus("Unable to open folder picker: " + message, true);
-      }
-    }
-  });
-}
+// Repos Root (Projects Folder) modal handlers live in static/js/repos-root.js.
 
 repoSelect.addEventListener("change", async e => {
   const newRepo = e.target.value || null;
@@ -4172,9 +4049,9 @@ repoSelect.addEventListener("change", async e => {
 
   // Persist last chosen repo
   if (state.currentRepo) {
-    window.localStorage.setItem("gitzada:lastRepoId", state.currentRepo);
+    window.gpStorage.set("lastRepoId", state.currentRepo);
   } else {
-    window.localStorage.removeItem("gitzada:lastRepoId");
+    window.gpStorage.remove("lastRepoId");
   }
 
   // Clear UI panels
@@ -5368,12 +5245,11 @@ document.addEventListener("mousedown", () => {
   // Don't hide it prematurely here
 
   const existingRoot = getStoredReposRoot();
-  const onboarded =
-    window.localStorage.getItem("gitzada:reposRootOnboarded") === "true";
+  const onboarded = window.gpStorage.get("reposRootOnboarded") === "true";
 
   if (existingRoot) {
     // Persist normalized value back into storage
-    window.localStorage.setItem("gitzada:reposRoot", existingRoot);
+    window.gpStorage.set("reposRoot", existingRoot);
     loadRepos();
   } else if (onboarded) {
     // User explicitly chose to rely on server default earlier

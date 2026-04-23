@@ -78,3 +78,6 @@ coverage/
 # Test artifacts
 test-results/
 .claude
+
+# Documentation drafts (local only)
+docs/draft/

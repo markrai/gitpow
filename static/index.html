@@ -690,6 +690,7 @@
 
 
   <!-- Modular JS files (loaded before script.js) -->
+  <script src="js/storage-keys.js"></script>
   <script src="js/cache.js"></script>
   <script src="js/loading-progress.js"></script>
   <script src="js/utils.js"></script>
@@ -714,5 +715,7 @@
 
   <script type="module" src="graph.js"></script>
   <script src="script.js"></script>
+  <!-- Feature modules that depend on globals defined by script.js -->
+  <script src="js/repos-root.js"></script>
 </body>
 </html>

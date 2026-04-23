@@ -151,7 +151,7 @@ function showGraphLimitNotification(actualCount, limit, wasTruncated) {
  * @returns {string} Normalized repos root path or empty string
  */
 function getStoredReposRoot() {
-  const raw = window.localStorage.getItem("gitzada:reposRoot");
+  const raw = window.gpStorage ? window.gpStorage.get("reposRoot") : window.localStorage.getItem("gitzada:reposRoot");
   if (!raw) return "";
   return normalizePathForDisplay(String(raw));
 }
@@ -225,7 +225,11 @@ function closeReposRootModal() {
   reposRootModal.style.display = "none";
   // Mark that the user has seen/handled the Projects Folder dialog at least once
   try {
-    window.localStorage.setItem("gitzada:reposRootOnboarded", "true");
+    if (window.gpStorage) {
+      window.gpStorage.set("reposRootOnboarded", "true");
+    } else {
+      window.localStorage.setItem("gitzada:reposRootOnboarded", "true");
+    }
   } catch {
     // Ignore storage errors (e.g., private mode)
   }

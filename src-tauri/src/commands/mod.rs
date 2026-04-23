@@ -20,7 +20,7 @@ pub use diff::get_diff;
 pub use explorer::open_explorer;
 pub use fetch::fetch_repo;
 pub use files::{get_files, get_commit_files, get_file, get_file_creation, get_file_creation_batch, get_image};
-pub use git_ops::{pull_repo, push_repo, stash_pop, stash_push};
+pub use git_ops::{pull_repo, push_repo, stash_apply, stash_drop, stash_list, stash_pop, stash_push};
 pub use rebase::{get_rebase_preview, post_rebase_plan};
 pub use repos::{get_config, get_repos};
 pub use staging::{get_status, stage, unstage, commit};

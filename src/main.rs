@@ -2,6 +2,7 @@ mod config;
 mod git;
 mod handlers;
 mod models;
+mod services;
 mod utils;
 
 use axum::{

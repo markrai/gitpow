@@ -55,24 +55,24 @@ function updateActiveFileState(newFilePath) {
   }
 }
 
-// Process file creation info queue with rate limiting
+// Process file creation info queue with rate limiting.
+// fileCreationQueue, fileCreationInProgress, activeFileRequests, commitsAgoCache,
+// cachedAllBranchesCommits, cachedAllBranchesKey are `let` in static/js/state.js
+// (classic-script shared global scope, NOT window properties). Access by bare name.
 async function processFileCreationQueue() {
-  if (window.fileCreationInProgress || !window.fileCreationQueue || window.fileCreationQueue.length === 0) {
+  if (fileCreationInProgress || !fileCreationQueue || fileCreationQueue.length === 0) {
     return;
   }
   
-  window.fileCreationInProgress = true;
+  fileCreationInProgress = true;
   
-  const MAX_CONCURRENT_FILE_REQUESTS = window.MAX_CONCURRENT_FILE_REQUESTS || 3;
-  const FILE_CREATION_BATCH_SIZE = window.FILE_CREATION_BATCH_SIZE || 5;
-  
-  while (window.fileCreationQueue.length > 0 && window.activeFileRequests < MAX_CONCURRENT_FILE_REQUESTS) {
-    const batchItems = window.fileCreationQueue.splice(0, FILE_CREATION_BATCH_SIZE);
-    window.activeFileRequests++;
+  while (fileCreationQueue.length > 0 && activeFileRequests < MAX_CONCURRENT_FILE_REQUESTS) {
+    const batchItems = fileCreationQueue.splice(0, FILE_CREATION_BATCH_SIZE);
+    activeFileRequests++;
     
     // Process this batch
     loadFileCreationInfoBatch(batchItems).finally(() => {
-      window.activeFileRequests--;
+      activeFileRequests--;
       // Process next batch after a small delay
       setTimeout(() => {
         processFileCreationQueue();
@@ -80,7 +80,7 @@ async function processFileCreationQueue() {
     });
   }
   
-  window.fileCreationInProgress = false;
+  fileCreationInProgress = false;
 }
 
 // Render file creation info into the UI for a single file
@@ -98,8 +98,8 @@ async function renderFileCreationInfo(filePath, metaElement, creationInfo) {
       const cacheKey = `${window.state.currentRepo}:${window.state.currentCommit.sha}:${creationInfo.commitSha}`;
       let commitsAgo = null;
       
-      if (window.commitsAgoCache && window.commitsAgoCache.has(cacheKey)) {
-        commitsAgo = window.commitsAgoCache.get(cacheKey);
+      if (commitsAgoCache.has(cacheKey)) {
+        commitsAgo = commitsAgoCache.get(cacheKey);
         console.log("[renderFileCreationInfo] Using cached commitsAgo:", commitsAgo, "for", cacheKey);
       } else {
         // Find the index of this commit in the commits list
@@ -124,12 +124,12 @@ async function renderFileCreationInfo(filePath, metaElement, creationInfo) {
           // If commit not found in current list, check __ALL__ cache before making API call
           // This prevents unnecessary API calls when we have the data cached
           let foundInCache = false;
-          if (window.cachedAllBranchesCommits && window.cachedAllBranchesCommits.length > 0) {
-            const parsed = window.parseCacheKey && window.parseCacheKey(window.cachedAllBranchesKey);
+          if (cachedAllBranchesCommits && cachedAllBranchesCommits.length > 0) {
+            const parsed = window.parseCacheKey && window.parseCacheKey(cachedAllBranchesKey);
             if (parsed && parsed.repo === window.state.currentRepo) {
               // Check if both commits are in the __ALL__ cache
-              const creationCommitIndex = window.cachedAllBranchesCommits.findIndex(c => c && c.sha === creationInfo.commitSha);
-              const currentCommitIndexInCache = window.cachedAllBranchesCommits.findIndex(c => c && c.sha === window.state.currentCommit.sha);
+              const creationCommitIndex = cachedAllBranchesCommits.findIndex(c => c && c.sha === creationInfo.commitSha);
+              const currentCommitIndexInCache = cachedAllBranchesCommits.findIndex(c => c && c.sha === window.state.currentCommit.sha);
               
               if (creationCommitIndex >= 0 && currentCommitIndexInCache >= 0) {
                 // Both commits found in cache, calculate from cache
@@ -164,8 +164,8 @@ async function renderFileCreationInfo(filePath, metaElement, creationInfo) {
           }
           
           // Cache the result
-          if (commitsAgo !== null && window.commitsAgoCache) {
-            window.commitsAgoCache.set(cacheKey, commitsAgo);
+          if (commitsAgo !== null) {
+            commitsAgoCache.set(cacheKey, commitsAgo);
           }
         }
       }

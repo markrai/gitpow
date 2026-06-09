@@ -99,4 +99,3 @@ fn open_directory(dir_path: &StdPath, full_path: &StdPath) {
             .spawn();
     }
 }
-

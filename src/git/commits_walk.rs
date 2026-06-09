@@ -21,7 +21,11 @@ impl GitRepository {
     pub fn get_commits(&self, branch_name: &str, limit: usize) -> Result<Vec<Commit>> {
         // Resolve the starting point for this history. This can be any revspec
         // ("HEAD", "main", "origin/main", etc.).
-        let spec = if branch_name.is_empty() { "HEAD" } else { branch_name };
+        let spec = if branch_name.is_empty() {
+            "HEAD"
+        } else {
+            branch_name
+        };
         let target = match self.repo.revparse_single(spec) {
             Ok(t) => t,
             Err(e)
@@ -100,7 +104,11 @@ impl GitRepository {
     /// with that branch name, avoiding every commit looking like it's on
     /// every branch.
     pub fn get_commits_local(&self, branch_name: &str, limit: usize) -> Result<Vec<Commit>> {
-        let spec = if branch_name.is_empty() { "HEAD" } else { branch_name };
+        let spec = if branch_name.is_empty() {
+            "HEAD"
+        } else {
+            branch_name
+        };
         let target = match self.repo.revparse_single(spec) {
             Ok(t) => t,
             Err(e)

@@ -1,9 +1,9 @@
 use anyhow::{bail, Context, Result};
 use git2::{self, Repository};
-use std::path::{Path, PathBuf};
-use std::process::Command;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 /// Run a git command in the specified directory and return stdout as a String.
 /// This is a standalone utility for handlers that don't need a full GitRepository.
@@ -16,8 +16,7 @@ pub fn run_git(args: &[&str], repo_path: &Path) -> Result<String, String> {
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
     }
 
-    let output = cmd.output()
-        .map_err(|e| e.to_string())?;
+    let output = cmd.output().map_err(|e| e.to_string())?;
 
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).to_string());
@@ -72,7 +71,8 @@ impl GitRepository {
             cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
         }
 
-        let output = cmd.output()
+        let output = cmd
+            .output()
             .with_context(|| format!("Failed to run git with args {:?}", args))?;
 
         if !output.status.success() {
@@ -93,7 +93,8 @@ impl GitRepository {
             cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
         }
 
-        let output = cmd.output()
+        let output = cmd
+            .output()
             .with_context(|| format!("Failed to run git with args {:?}", args))?;
 
         if !output.status.success() {

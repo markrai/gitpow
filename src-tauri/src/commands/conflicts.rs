@@ -1,7 +1,5 @@
 use gitpow_rust::config::Config;
-use gitpow_rust::models::{
-    ConflictFile, ConflictFileResponse, ConflictsResponse, SuccessResponse,
-};
+use gitpow_rust::models::{ConflictFile, ConflictFileResponse, ConflictsResponse, SuccessResponse};
 use gitpow_rust::utils::get_repo_path;
 use serde::Deserialize;
 use std::fs;
@@ -15,12 +13,12 @@ use std::os::windows::process::CommandExt;
 fn run_git(args: &[&str], repo_path: &std::path::Path) -> Result<String, String> {
     let mut cmd = Command::new("git");
     cmd.args(args).current_dir(repo_path);
-    
+
     #[cfg(target_os = "windows")]
     {
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
     }
-    
+
     let output = cmd.output().map_err(|e| e.to_string())?;
 
     if !output.status.success() {
@@ -105,14 +103,14 @@ pub fn get_conflict_file(
     // :1: = base, :2: = ours, :3: = theirs
     let base = run_git(&["show", &format!(":1:{}", params.path)], &repo_path).unwrap_or_default();
 
-    let mine = run_git(&["show", &format!(":2:{}", params.path)], &repo_path).unwrap_or_else(|_| {
-        // Fallback to working tree
-        let full_path = repo_path.join(&params.path);
-        fs::read_to_string(&full_path).unwrap_or_default()
-    });
+    let mine =
+        run_git(&["show", &format!(":2:{}", params.path)], &repo_path).unwrap_or_else(|_| {
+            // Fallback to working tree
+            let full_path = repo_path.join(&params.path);
+            fs::read_to_string(&full_path).unwrap_or_default()
+        });
 
-    let theirs =
-        run_git(&["show", &format!(":3:{}", params.path)], &repo_path).unwrap_or_default();
+    let theirs = run_git(&["show", &format!(":3:{}", params.path)], &repo_path).unwrap_or_default();
 
     // Get current conflicted content (working tree)
     let full_path = repo_path.join(&params.path);
@@ -160,4 +158,3 @@ pub fn resolve_conflict(
 
     Ok(SuccessResponse { success: true })
 }
-

@@ -181,8 +181,8 @@ pub fn get_best_branch_to_checkout(
         return Err("Repository not found".to_string());
     }
 
-    let git_repo = GitRepository::open(&repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(&repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     if let Ok(Some(previous_branch)) = git_repo.get_previous_branch_from_reflog() {
         if let Ok(branch_info) = git_repo.get_branch_info() {

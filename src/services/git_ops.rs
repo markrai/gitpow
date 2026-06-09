@@ -99,10 +99,7 @@ pub fn stash_list(repo_path: &Path) -> Result<Vec<StashEntry>, String> {
 }
 
 /// Stash local changes. Returns a non-error skip if there's nothing to stash.
-pub fn stash_push(
-    repo_path: &Path,
-    message: Option<&str>,
-) -> Result<GitOperationResponse, String> {
+pub fn stash_push(repo_path: &Path, message: Option<&str>) -> Result<GitOperationResponse, String> {
     let git_repo = open_repo(repo_path)?;
 
     if !git_repo.has_uncommitted_changes().unwrap_or(false) {

@@ -452,6 +452,33 @@ cargo tauri dev
   - Options: `error`, `warn`, `info`, `debug`, `trace`
   - Example: `RUST_LOG=info cargo tauri dev`
 
+### Smoke Tests and CI Checks
+
+Pull requests run the workflow in `.github/workflows/ci-smoke-lint.yml`, which checks:
+
+- Rust formatting (`cargo fmt --all -- --check`)
+- Rust smoke tests (`services_integration`, `api_tauri_parity`)
+- Frontend boot smoke (Playwright against the HTTP server)
+
+Run the same checks locally:
+
+```bash
+# Rust formatting + service/parity smoke tests
+npm run smoke:lint
+
+# Frontend boot smoke (builds gitpow-rust, starts server, runs Playwright)
+npm install
+npx playwright install chromium
+npm run smoke:frontend
+```
+
+Optional environment variables for frontend smoke:
+
+- `REPOS_ROOT`: folder scanned for repositories (defaults to repo root)
+- `PORT`: HTTP port for the dev server (default: `3000`)
+
+The release workflow (`.github/workflows/release.yml`) is unchanged; smoke gates apply to PRs only.
+
 ## Build Output Locations
 
 All build outputs are located in `src-tauri/target/`:

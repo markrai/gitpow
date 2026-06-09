@@ -2,8 +2,15 @@
   "name": "gitpow-frontend",
   "version": "0.1.2",
   "type": "module",
+  "scripts": {
+    "smoke:frontend": "cargo build --bin gitpow-rust && playwright test",
+    "smoke:lint": "cargo fmt --all -- --check && cargo test --test services_integration --test api_tauri_parity"
+  },
   "dependencies": {
     "@tauri-apps/api": "^2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
   }
 }
 

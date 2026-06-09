@@ -30,4 +30,3 @@ pub async fn browse_projects_root(
         )),
     }
 }
-

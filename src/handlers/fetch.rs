@@ -1,5 +1,5 @@
-use crate::git::repository::GitRepository;
 use crate::config::Config;
+use crate::git::repository::GitRepository;
 use axum::{
     extract::{Path, State},
     http::StatusCode,

@@ -101,7 +101,10 @@ pub async fn get_branches(
                             e
                         );
                     } else {
-                        tracing::debug!("Background fetch for {} completed.", repo_path_clone.display());
+                        tracing::debug!(
+                            "Background fetch for {} completed.",
+                            repo_path_clone.display()
+                        );
                     }
                 }
                 Err(e) => {
@@ -160,11 +163,7 @@ pub async fn get_branch_ahead_behind(
             .peel_to_commit()
             .ok()
             .map(|c| c.id().to_string())
-    } else if let Ok(remote_branch) =
-        git_repo
-            .repo
-            .find_branch(&branch, git2::BranchType::Remote)
-    {
+    } else if let Ok(remote_branch) = git_repo.repo.find_branch(&branch, git2::BranchType::Remote) {
         remote_branch
             .get()
             .peel_to_commit()
@@ -208,10 +207,9 @@ pub async fn get_branch_ahead_behind(
         }
     };
 
-    let (ahead, behind) =
-        git_repo
-            .ahead_behind(&branch_sha, &upstream_sha)
-            .unwrap_or((0, 0));
+    let (ahead, behind) = git_repo
+        .ahead_behind(&branch_sha, &upstream_sha)
+        .unwrap_or((0, 0));
 
     Ok(Json(BranchAheadBehind {
         ahead: ahead as i32,
@@ -268,12 +266,8 @@ pub async fn get_branch_creation(
                 }
 
                 // Get commit details
-                let details_result = git_repo.run_git(&[
-                    "log",
-                    "-1",
-                    "--format=%H%x1f%aI%x1f%s",
-                    root_sha,
-                ]);
+                let details_result =
+                    git_repo.run_git(&["log", "-1", "--format=%H%x1f%aI%x1f%s", root_sha]);
 
                 match details_result {
                     Ok(details) => {
@@ -351,12 +345,8 @@ pub async fn get_branch_creation(
                 };
 
                 // Get commit details for the creation commit
-                let details_result = git_repo.run_git(&[
-                    "log",
-                    "-1",
-                    "--format=%H%x1f%aI%x1f%s",
-                    &creation_sha,
-                ]);
+                let details_result =
+                    git_repo.run_git(&["log", "-1", "--format=%H%x1f%aI%x1f%s", &creation_sha]);
 
                 match details_result {
                     Ok(details) => {
@@ -383,11 +373,7 @@ pub async fn get_branch_creation(
             Err(e) => {
                 // No merge-base found - this might be an orphan branch or unrelated history
                 // Fall back to finding the oldest commit on this branch
-                let oldest_result = git_repo.run_git(&[
-                    "rev-list",
-                    "--max-parents=0",
-                    &branch,
-                ]);
+                let oldest_result = git_repo.run_git(&["rev-list", "--max-parents=0", &branch]);
 
                 match oldest_result {
                     Ok(output) => {

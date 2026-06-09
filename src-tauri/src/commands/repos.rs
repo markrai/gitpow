@@ -20,27 +20,36 @@ pub fn get_repos(
     config: State<'_, Mutex<Config>>,
 ) -> Result<Vec<Repo>, String> {
     let config = config.lock().unwrap();
-    
+
     tracing::debug!("get_repos: Received request: {:?}", request);
-    
+
     // Extract repos_root from request, or use config default
     let repos_root = if let Some(req) = request {
         if let Some(custom_root) = req.repos_root {
-            tracing::debug!("get_repos: Using custom repos_root from request: {}", custom_root);
+            tracing::debug!(
+                "get_repos: Using custom repos_root from request: {}",
+                custom_root
+            );
             let path = PathBuf::from(custom_root);
             path.canonicalize().unwrap_or_else(|_| {
                 tracing::warn!("get_repos: Failed to canonicalize path: {:?}", path);
                 path
             })
         } else {
-            tracing::debug!("get_repos: Request provided but repos_root is None, using config default: {:?}", config.repos_root);
+            tracing::debug!(
+                "get_repos: Request provided but repos_root is None, using config default: {:?}",
+                config.repos_root
+            );
             config.repos_root.clone()
         }
     } else {
-        tracing::debug!("get_repos: No request provided, using config default: {:?}", config.repos_root);
+        tracing::debug!(
+            "get_repos: No request provided, using config default: {:?}",
+            config.repos_root
+        );
         config.repos_root.clone()
     };
-    
+
     tracing::debug!("get_repos: Final repos_root path: {:?}", repos_root);
     tracing::debug!("get_repos: repos_root exists: {}", repos_root.exists());
     tracing::debug!("get_repos: repos_root is_dir: {}", repos_root.is_dir());
@@ -69,8 +78,12 @@ pub fn get_repos(
     // Case 1: the selected folder itself is a git repository.
     let self_git_dir = repos_root.join(".git");
     let self_is_repo = self_git_dir.is_dir();
-    tracing::debug!("get_repos: Checking if folder itself is a repo. .git path: {:?}, exists: {}, is_dir: {}", 
-                    self_git_dir, self_git_dir.exists(), self_is_repo);
+    tracing::debug!(
+        "get_repos: Checking if folder itself is a repo. .git path: {:?}, exists: {}, is_dir: {}",
+        self_git_dir,
+        self_git_dir.exists(),
+        self_is_repo
+    );
     if self_is_repo {
         tracing::debug!("get_repos: Folder itself is a git repository");
         let name = repos_root
@@ -119,7 +132,11 @@ pub fn get_repos(
             let file_type = match entry.file_type() {
                 Ok(ft) => ft,
                 Err(e) => {
-                    tracing::warn!("get_repos: Failed to get file type for {:?}: {}", entry.file_name(), e);
+                    tracing::warn!(
+                        "get_repos: Failed to get file type for {:?}: {}",
+                        entry.file_name(),
+                        e
+                    );
                     return None;
                 }
             };
@@ -129,7 +146,7 @@ pub fn get_repos(
             }
 
             let full_path = repos_root.join(entry.file_name());
-            
+
             // Skip hidden directories (starting with '.')
             if is_hidden(&full_path) {
                 tracing::debug!("get_repos: Skipping hidden directory: {:?}", full_path);
@@ -141,7 +158,10 @@ pub fn get_repos(
         .collect();
 
     let entry_count = dirs.len();
-    tracing::debug!("get_repos: Found {} directories to check for git repos", entry_count);
+    tracing::debug!(
+        "get_repos: Found {} directories to check for git repos",
+        entry_count
+    );
 
     // Use parallel iteration to check .git existence concurrently
     let found_repos: Vec<Repo> = dirs
@@ -149,7 +169,7 @@ pub fn get_repos(
         .filter_map(|dir| {
             let git_dir = dir.join(".git");
             let git_exists = git_dir.exists();
-            
+
             if git_exists {
                 let name = dir
                     .file_name()
@@ -168,8 +188,12 @@ pub fn get_repos(
         .collect();
 
     repos.extend(found_repos);
-    
-    tracing::debug!("get_repos: Scanned {} entries, found {} repos", entry_count, repos.len());
+
+    tracing::debug!(
+        "get_repos: Scanned {} entries, found {} repos",
+        entry_count,
+        repos.len()
+    );
     Ok(repos)
 }
 
@@ -180,5 +204,3 @@ pub fn get_config(config: State<'_, Mutex<Config>>) -> Result<ConfigResponse, St
         repos_root: config.repos_root.to_string_lossy().to_string(),
     })
 }
-
-

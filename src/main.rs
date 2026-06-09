@@ -5,16 +5,16 @@ mod models;
 mod services;
 mod utils;
 
+use axum::http::{header::CACHE_CONTROL, HeaderValue};
 use axum::{
     routing::{get, post},
     Router,
 };
 use std::net::SocketAddr;
-use tower::ServiceBuilder;
-use tower_http::{cors::CorsLayer, services::ServeDir, set_header::SetResponseHeaderLayer};
-use axum::http::{header::CACHE_CONTROL, HeaderValue};
-use tower_http::timeout::TimeoutLayer;
 use std::time::Duration;
+use tower::ServiceBuilder;
+use tower_http::timeout::TimeoutLayer;
+use tower_http::{cors::CorsLayer, services::ServeDir, set_header::SetResponseHeaderLayer};
 
 use config::Config;
 use handlers::branches::{get_branch_ahead_behind, get_branch_creation, get_branches};
@@ -25,17 +25,17 @@ use handlers::commits::{
 use handlers::conflicts::{get_conflict_file, get_conflicts, resolve_conflict};
 use handlers::diff::get_diff;
 use handlers::explorer::open_explorer;
+use handlers::fetch::fetch_repo;
 use handlers::files::{
     get_commit_files, get_file, get_file_creation, get_file_creation_batch, get_files, get_image,
 };
-use handlers::rebase::{get_rebase_preview, post_rebase_plan};
-use handlers::repos::{get_config, get_repos};
-use handlers::staging::{commit, get_status, stage, unstage};
-use handlers::fetch::fetch_repo;
 use handlers::git_ops::{
     get_branch_status, pull_repo, push_repo, stash_apply, stash_drop, stash_list, stash_pop,
     stash_push,
 };
+use handlers::rebase::{get_rebase_preview, post_rebase_plan};
+use handlers::repos::{get_config, get_repos};
+use handlers::staging::{commit, get_status, stage, unstage};
 
 #[tokio::main]
 async fn main() {
@@ -107,7 +107,7 @@ async fn main() {
         .layer(
             ServiceBuilder::new()
                 .layer(TimeoutLayer::new(Duration::from_secs(60))) // 60 second timeout for all requests
-                .layer(CorsLayer::permissive())
+                .layer(CorsLayer::permissive()),
         )
         .with_state(app_state)
         .fallback_service(static_service);

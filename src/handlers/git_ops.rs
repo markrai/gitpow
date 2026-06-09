@@ -1,8 +1,6 @@
 use crate::config::Config;
 use crate::git::repository::GitRepository;
-use crate::models::{
-    BranchStatusResponse, ErrorResponse, GitOperationResponse, StashListResponse,
-};
+use crate::models::{BranchStatusResponse, ErrorResponse, GitOperationResponse, StashListResponse};
 use crate::services::git_ops as git_ops_service;
 use axum::{
     extract::{Path, Query, State},
@@ -122,10 +120,9 @@ pub async fn stash_push(
     Query(params): Query<StashPushQuery>,
 ) -> Result<Json<GitOperationResponse>, (StatusCode, Json<ErrorResponse>)> {
     let repo_path = PathBuf::from(&config.repos_root).join(&repo_name);
-    let response = run_blocking(move || {
-        git_ops_service::stash_push(&repo_path, params.message.as_deref())
-    })
-    .await?;
+    let response =
+        run_blocking(move || git_ops_service::stash_push(&repo_path, params.message.as_deref()))
+            .await?;
     Ok(Json(response))
 }
 
@@ -144,10 +141,9 @@ pub async fn stash_apply(
     Query(params): Query<StashRefQuery>,
 ) -> Result<Json<GitOperationResponse>, (StatusCode, Json<ErrorResponse>)> {
     let repo_path = PathBuf::from(&config.repos_root).join(&repo_name);
-    let response = run_blocking(move || {
-        git_ops_service::stash_apply(&repo_path, params.stash_ref.as_deref())
-    })
-    .await?;
+    let response =
+        run_blocking(move || git_ops_service::stash_apply(&repo_path, params.stash_ref.as_deref()))
+            .await?;
     Ok(Json(response))
 }
 
@@ -157,9 +153,8 @@ pub async fn stash_drop(
     Query(params): Query<StashRefQuery>,
 ) -> Result<Json<GitOperationResponse>, (StatusCode, Json<ErrorResponse>)> {
     let repo_path = PathBuf::from(&config.repos_root).join(&repo_name);
-    let response = run_blocking(move || {
-        git_ops_service::stash_drop(&repo_path, params.stash_ref.as_deref())
-    })
-    .await?;
+    let response =
+        run_blocking(move || git_ops_service::stash_drop(&repo_path, params.stash_ref.as_deref()))
+            .await?;
     Ok(Json(response))
 }

@@ -6,10 +6,7 @@ use std::sync::Mutex;
 use tauri::State;
 
 #[tauri::command]
-pub fn fetch_repo(
-    repo: String,
-    config: State<'_, Mutex<Config>>,
-) -> Result<String, String> {
+pub fn fetch_repo(repo: String, config: State<'_, Mutex<Config>>) -> Result<String, String> {
     let config = config.lock().unwrap();
     let repo_path = get_repo_path(&repo, &config.repos_root);
 
@@ -25,5 +22,3 @@ pub fn fetch_repo(
         Err(e) => Err(format!("Failed to open repository: {}", e)),
     }
 }
-
-

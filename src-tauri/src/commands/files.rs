@@ -1,8 +1,8 @@
+use base64::{engine::general_purpose, Engine as _};
 use gitpow_rust::config::Config;
 use gitpow_rust::git::repository::GitRepository;
 use gitpow_rust::models::{FileChange, FileCreationInfo, ImageResponse};
 use gitpow_rust::utils::{get_repo_path, normalize_sha};
-use base64::{engine::general_purpose, Engine as _};
 use mime_guess;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -45,7 +45,8 @@ struct CachedValue<T> {
     stored: Instant,
 }
 
-fn file_creation_cache() -> &'static Mutex<HashMap<(String, String), CachedValue<FileCreationInfo>>> {
+fn file_creation_cache() -> &'static Mutex<HashMap<(String, String), CachedValue<FileCreationInfo>>>
+{
     static CACHE: OnceLock<Mutex<HashMap<(String, String), CachedValue<FileCreationInfo>>>> =
         OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(HashMap::new()))
@@ -128,8 +129,8 @@ pub fn get_files(
 ) -> Result<Vec<String>, String> {
     let config = config.lock().unwrap();
     let repo_path = get_repo_path(&params.repo, &config.repos_root);
-    let git_repo = GitRepository::open(&repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(&repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     let reference = params.ref_.as_deref().unwrap_or("HEAD");
     let mut args = vec!["ls-tree", "--name-only", reference];
@@ -154,8 +155,8 @@ pub fn get_commit_files(
 ) -> Result<Vec<FileChange>, String> {
     let config = config.lock().unwrap();
     let repo_path = get_repo_path(&params.repo, &config.repos_root);
-    let git_repo = GitRepository::open(&repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(&repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     tracing::debug!("get_commit_files: params.ref_ = {:?}", params.ref_);
     let ref_sha = params.ref_.as_deref().unwrap_or_else(|| {
@@ -244,8 +245,8 @@ pub fn get_file(
 ) -> Result<String, String> {
     let config = config.lock().unwrap();
     let repo_path = get_repo_path(&params.repo, &config.repos_root);
-    let git_repo = GitRepository::open(&repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(&repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     let path = params.path.unwrap_or_default();
     if path.is_empty() {
@@ -276,8 +277,8 @@ pub fn get_file_creation(
     let config = config.lock().unwrap();
     let repo_path = get_repo_path(&params.repo, &config.repos_root);
     let repo_key = repo_path.to_string_lossy().to_string();
-    let git_repo = GitRepository::open(&repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(&repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     let info = compute_file_creation_info(&git_repo, &repo_key, &path);
 
@@ -289,8 +290,12 @@ pub fn get_file_creation_batch(
     params: GetFileCreationBatchParams,
     config: State<'_, Mutex<Config>>,
 ) -> Result<HashMap<String, FileCreationInfo>, String> {
-    let paths: Vec<String> = serde_json::from_str(&params.paths)
-        .map_err(|e| format!("invalid paths parameter (expected JSON array of strings): {}", e))?;
+    let paths: Vec<String> = serde_json::from_str(&params.paths).map_err(|e| {
+        format!(
+            "invalid paths parameter (expected JSON array of strings): {}",
+            e
+        )
+    })?;
 
     if paths.is_empty() {
         return Err("paths parameter must be a non-empty JSON array".to_string());
@@ -299,8 +304,8 @@ pub fn get_file_creation_batch(
     let config = config.lock().unwrap();
     let repo_path = get_repo_path(&params.repo, &config.repos_root);
     let repo_key = repo_path.to_string_lossy().to_string();
-    let git_repo = GitRepository::open(&repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(&repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     let mut result: HashMap<String, FileCreationInfo> = HashMap::new();
 
@@ -328,8 +333,8 @@ pub fn get_image(
 
     let config = config.lock().unwrap();
     let repo_path = get_repo_path(&params.repo, &config.repos_root);
-    let git_repo = GitRepository::open(&repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(&repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     let ref_sha = params.ref_.as_deref().unwrap_or("HEAD");
     let ref_sha = normalize_sha(ref_sha);
@@ -355,5 +360,3 @@ pub fn get_image(
         mime_type,
     })
 }
-
-

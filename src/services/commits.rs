@@ -21,8 +21,8 @@ pub fn list_commits(
     limit: usize,
     mode: &str,
 ) -> Result<Vec<Commit>, String> {
-    let git_repo = GitRepository::open(repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     let commits = if mode.eq_ignore_ascii_case("local") {
         git_repo.get_commits_local(branch, limit)
@@ -42,8 +42,8 @@ pub fn list_all_branches_commits(
     repo_path: &Path,
     max_total: usize,
 ) -> Result<Vec<Commit>, String> {
-    let git_repo = GitRepository::open(repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     let branch_info = git_repo
         .get_branch_info()
@@ -65,33 +65,28 @@ pub fn list_all_branches_commits(
         per_branch_limit = 500;
     }
 
-    let combined: Mutex<HashMap<String, (Commit, HashSet<String>)>> =
-        Mutex::new(HashMap::new());
+    let combined: Mutex<HashMap<String, (Commit, HashSet<String>)>> = Mutex::new(HashMap::new());
     let repo_path_buf: PathBuf = repo_path.to_path_buf();
 
-    branches
-        .par_iter()
-        .try_for_each(|branch| {
-            // Each rayon thread opens its own repo connection (libgit2
-            // `Repository` is not `Send`/`Sync`).
-            let git_repo = GitRepository::open(&repo_path_buf)
-                .map_err(|e| format!("Failed to open repository: {}", e))?;
+    branches.par_iter().try_for_each(|branch| {
+        // Each rayon thread opens its own repo connection (libgit2
+        // `Repository` is not `Send`/`Sync`).
+        let git_repo = GitRepository::open(&repo_path_buf)
+            .map_err(|e| format!("Failed to open repository: {}", e))?;
 
-            let commits_for_branch = git_repo
-                .get_commits_local(branch, per_branch_limit)
-                .map_err(|e| format!("Failed to get commits for branch {}: {}", branch, e))?;
+        let commits_for_branch = git_repo
+            .get_commits_local(branch, per_branch_limit)
+            .map_err(|e| format!("Failed to get commits for branch {}: {}", branch, e))?;
 
-            let mut map = combined.lock().unwrap();
-            for commit in commits_for_branch {
-                let sha = commit.sha.clone();
-                let entry = map
-                    .entry(sha)
-                    .or_insert_with(|| (commit, HashSet::new()));
-                entry.1.insert(branch.clone());
-            }
+        let mut map = combined.lock().unwrap();
+        for commit in commits_for_branch {
+            let sha = commit.sha.clone();
+            let entry = map.entry(sha).or_insert_with(|| (commit, HashSet::new()));
+            entry.1.insert(branch.clone());
+        }
 
-            Ok::<(), String>(())
-        })?;
+        Ok::<(), String>(())
+    })?;
 
     let combined = combined.into_inner().unwrap();
     let mut all_commits: Vec<Commit> = combined
@@ -118,8 +113,8 @@ pub fn count_commits_between(
     from: &str,
     to: &str,
 ) -> Result<CommitsBetweenResponse, String> {
-    let git_repo = GitRepository::open(repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     let from_sha = normalize_sha(from);
     let to_sha = normalize_sha(to);
@@ -163,8 +158,8 @@ pub fn list_commit_metrics(
     branch: &str,
     limit: usize,
 ) -> Result<Vec<CommitMetric>, String> {
-    let git_repo = GitRepository::open(repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     let target = git_repo
         .repo
@@ -199,8 +194,7 @@ pub fn list_commit_metrics(
         .par_iter()
         .filter_map(|oid| {
             let git_repo = GitRepository::open(&repo_path_for_threads).ok()?;
-            let (files_changed, lines_changed) =
-                git_repo.get_commit_stats(*oid).unwrap_or((0, 0));
+            let (files_changed, lines_changed) = git_repo.get_commit_stats(*oid).unwrap_or((0, 0));
             Some(CommitMetric {
                 sha: oid.to_string(),
                 lines_changed,
@@ -223,8 +217,8 @@ fn impact_score(files_changed: i32, lines_changed: i32) -> f64 {
 
 /// List annotated and lightweight tags with creation metadata.
 pub fn list_tags(repo_path: &Path) -> Result<Vec<Tag>, String> {
-    let git_repo = GitRepository::open(repo_path)
-        .map_err(|e| format!("Failed to open repository: {}", e))?;
+    let git_repo =
+        GitRepository::open(repo_path).map_err(|e| format!("Failed to open repository: {}", e))?;
 
     let tags_out = git_repo.run_git(&[
         "for-each-ref",

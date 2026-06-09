@@ -3,10 +3,10 @@ use axum::{
     http::StatusCode,
     response::Json,
 };
-use std::path::Path as StdPath;
-use std::process::Command;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+use std::path::Path as StdPath;
+use std::process::Command;
 
 use crate::config::Config;
 use crate::models::{ErrorResponse, SuccessResponse};

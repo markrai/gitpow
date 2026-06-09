@@ -65,11 +65,7 @@ impl GitRepository {
                         // Additional validation: check if it looks like a branch name.
                         // Branch names typically don't start with numbers and contain alphanumeric, -, _, /
                         if !branch_name.is_empty()
-                            && !branch_name
-                                .chars()
-                                .next()
-                                .unwrap_or(' ')
-                                .is_ascii_digit()
+                            && !branch_name.chars().next().unwrap_or(' ').is_ascii_digit()
                         {
                             return Ok(Some(branch_name.to_string()));
                         }
@@ -324,7 +320,11 @@ impl GitRepository {
 
     /// Get the last commit date on a branch
     pub fn get_branch_last_commit_date(&self, branch_name: &str) -> Result<Option<String>> {
-        let spec = if branch_name.is_empty() { "HEAD" } else { branch_name };
+        let spec = if branch_name.is_empty() {
+            "HEAD"
+        } else {
+            branch_name
+        };
         let target = match self.repo.revparse_single(spec) {
             Ok(t) => t,
             Err(_) => return Ok(None), // Branch doesn't exist or has no commits

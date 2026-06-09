@@ -46,8 +46,8 @@ fn init_fixture_repo() -> (TempDir, PathBuf) {
 fn list_commits_returns_initial_commit() {
     let (_dir, repo_path) = init_fixture_repo();
 
-    let commits = commits::list_commits(&repo_path, "HEAD", 10, "full")
-        .expect("list_commits should succeed");
+    let commits =
+        commits::list_commits(&repo_path, "HEAD", 10, "full").expect("list_commits should succeed");
 
     assert_eq!(
         commits.len(),
@@ -63,7 +63,11 @@ fn list_tags_is_empty_on_fresh_repo() {
     let (_dir, repo_path) = init_fixture_repo();
 
     let tags = commits::list_tags(&repo_path).expect("list_tags should succeed");
-    assert!(tags.is_empty(), "fresh repo should have no tags: {:?}", tags);
+    assert!(
+        tags.is_empty(),
+        "fresh repo should have no tags: {:?}",
+        tags
+    );
 }
 
 #[test]
@@ -86,16 +90,22 @@ fn stash_push_reports_no_changes_on_clean_repo() {
         .expect("stash_push should succeed even with nothing to stash");
 
     assert!(!response.success, "nothing to stash should not be success");
-    assert_eq!(response.message.as_deref(), Some("No local changes to stash"));
-    assert!(response.error.is_none(), "no-op should not surface an error");
+    assert_eq!(
+        response.message.as_deref(),
+        Some("No local changes to stash")
+    );
+    assert!(
+        response.error.is_none(),
+        "no-op should not surface an error"
+    );
 }
 
 #[test]
 fn stash_pop_reports_no_stashes_on_empty_stack() {
     let (_dir, repo_path) = init_fixture_repo();
 
-    let response = git_ops::stash_pop(&repo_path)
-        .expect("stash_pop should succeed even with nothing to pop");
+    let response =
+        git_ops::stash_pop(&repo_path).expect("stash_pop should succeed even with nothing to pop");
 
     assert!(!response.success);
     assert_eq!(response.message.as_deref(), Some("No stashes to pop"));
@@ -112,7 +122,12 @@ fn get_commit_changed_files_returns_initial_readme() {
         .get_commit_changed_files(&head_sha)
         .expect("get_commit_changed_files should succeed");
 
-    assert_eq!(changes.len(), 1, "expected exactly one changed file: {:#?}", changes);
+    assert_eq!(
+        changes.len(),
+        1,
+        "expected exactly one changed file: {:#?}",
+        changes
+    );
     assert_eq!(changes[0].path, "README.md");
     assert_eq!(
         changes[0].status, "added",
@@ -145,7 +160,14 @@ fn get_file_diff_returns_hunk_for_modified_file() {
             .expect("peel parent");
 
         let oid = repo
-            .commit(Some("HEAD"), &sig, &sig, "add world line", &tree, &[&parent])
+            .commit(
+                Some("HEAD"),
+                &sig,
+                &sig,
+                "add world line",
+                &tree,
+                &[&parent],
+            )
             .expect("commit");
         oid.to_string()
     };
@@ -182,7 +204,10 @@ fn count_all_commits_returns_one_for_initial_fixture() {
         .count_all_commits()
         .expect("count_all_commits should succeed");
 
-    assert_eq!(count, 1, "single-commit fixture should report exactly one commit");
+    assert_eq!(
+        count, 1,
+        "single-commit fixture should report exactly one commit"
+    );
 }
 
 #[test]

@@ -38,10 +38,7 @@ pub struct GetAllBranchesCommitsParams {
 
 /// Resolve a repo-relative name to an absolute path under the configured
 /// repos root, without holding the `Config` lock across the blocking work.
-fn repo_path_for(
-    name: &str,
-    config: &State<'_, Mutex<Config>>,
-) -> std::path::PathBuf {
+fn repo_path_for(name: &str, config: &State<'_, Mutex<Config>>) -> std::path::PathBuf {
     let repos_root = config.lock().unwrap().repos_root.clone();
     get_repo_path(name, &repos_root)
 }
@@ -106,10 +103,7 @@ pub async fn get_commit_metrics(
 }
 
 #[tauri::command]
-pub async fn get_tags(
-    repo: String,
-    config: State<'_, Mutex<Config>>,
-) -> Result<Vec<Tag>, String> {
+pub async fn get_tags(repo: String, config: State<'_, Mutex<Config>>) -> Result<Vec<Tag>, String> {
     let repo_path = repo_path_for(&repo, &config);
 
     run_blocking(move || commits_service::list_tags(&repo_path)).await

@@ -20,9 +20,7 @@ pub async fn browse_projects_root() -> Result<BrowseFolderResponse, String> {
         Some(path) => {
             let path_str = path.to_string_lossy().to_string();
             tracing::debug!("Folder selected: {}", path_str);
-            Ok(BrowseFolderResponse {
-                path: path_str,
-            })
+            Ok(BrowseFolderResponse { path: path_str })
         }
         None => {
             tracing::debug!("Folder selection was cancelled");
@@ -30,5 +28,3 @@ pub async fn browse_projects_root() -> Result<BrowseFolderResponse, String> {
         }
     }
 }
-
-

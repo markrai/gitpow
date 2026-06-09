@@ -13,12 +13,12 @@ use std::os::windows::process::CommandExt;
 fn run_git(args: &[&str], repo_path: &std::path::Path) -> Result<String, String> {
     let mut cmd = Command::new("git");
     cmd.args(args).current_dir(repo_path);
-    
+
     #[cfg(target_os = "windows")]
     {
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
     }
-    
+
     let output = cmd.output().map_err(|e| e.to_string())?;
 
     if !output.status.success() {
@@ -211,5 +211,3 @@ pub fn commit(
 
     Ok(SuccessResponse { success: true })
 }
-
-

@@ -4,5 +4,3 @@
 fn main() {
     gitpow_tauri::run()
 }
-
-

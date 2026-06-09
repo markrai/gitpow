@@ -195,9 +195,9 @@ impl GitRepository {
         diff_opts.pathspec(file_path);
         diff_opts.context_lines(3);
 
-        let diff =
-            self.repo
-                .diff_tree_to_tree(old_tree, Some(new_tree), Some(&mut diff_opts))?;
+        let diff = self
+            .repo
+            .diff_tree_to_tree(old_tree, Some(new_tree), Some(&mut diff_opts))?;
 
         let mut diff_text = String::new();
         let mut hunks: Vec<DiffHunkData> = Vec::new();

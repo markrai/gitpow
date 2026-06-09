@@ -42,7 +42,10 @@ pub async fn get_branches(
     // --- Spawn a background task to fetch remotes only if auto_fetch is enabled ---
     if params.auto_fetch {
         tokio::spawn(async move {
-            println!("Spawning background fetch for {}", repo_path_clone.display());
+            println!(
+                "Spawning background fetch for {}",
+                repo_path_clone.display()
+            );
             // Open a new repository instance for this thread.
             match GitRepository::open(&repo_path_clone) {
                 Ok(git_repo) => {
@@ -112,9 +115,8 @@ pub async fn get_branch_ahead_behind(
                 .peel_to_commit()
                 .ok()
                 .map(|c| c.id().to_string())
-        } else if let Ok(remote_branch) = git_repo
-            .repo
-            .find_branch(&branch, git2::BranchType::Remote)
+        } else if let Ok(remote_branch) =
+            git_repo.repo.find_branch(&branch, git2::BranchType::Remote)
         {
             remote_branch
                 .get()
@@ -213,7 +215,9 @@ pub async fn get_branch_status(
             .unwrap_or_else(|| "unknown".to_string());
 
         // Try local branch first (single lookup, reuse result)
-        let local_branch = git_repo.repo.find_branch(&current_branch, git2::BranchType::Local);
+        let local_branch = git_repo
+            .repo
+            .find_branch(&current_branch, git2::BranchType::Local);
         let is_local = local_branch.is_ok();
 
         let branch_sha = if let Ok(local_branch) = local_branch {
@@ -247,7 +251,11 @@ pub async fn get_branch_status(
                 "main".to_string()
             };
 
-            let has_upstream = git_repo.get_upstream(&current_branch).ok().flatten().is_some();
+            let has_upstream = git_repo
+                .get_upstream(&current_branch)
+                .ok()
+                .flatten()
+                .is_some();
 
             if let Ok(upstream_sha) = git_repo.rev_parse(&upstream_name) {
                 let (a, b) = git_repo
@@ -334,191 +342,179 @@ pub async fn get_branch_creation(
 
         let is_main_like = is_main_like_branch(&branch);
 
-    if is_main_like {
-        // For main branches, get the root commit (first commit in the repository)
-        let root_result = git_repo.run_git(&["rev-list", "--max-parents=0", "HEAD"]);
-        match root_result {
-            Ok(output) => {
-                let root_sha = output.lines().next().unwrap_or("").trim();
-                if root_sha.is_empty() {
-                    return Ok(BranchCreationInfo {
-                        found: false,
-                        commit_sha: None,
-                        commit_date: None,
-                        commit_message: None,
-                        is_root_commit: None,
-                        error: Some("No root commit found".to_string()),
-                    });
-                }
-
-                let details_result = git_repo.run_git(&[
-                    "log",
-                    "-1",
-                    "--format=%H%x1f%aI%x1f%s",
-                    root_sha,
-                ]);
-
-                match details_result {
-                    Ok(details) => {
-                        let parts: Vec<&str> = details.trim().split('\x1f').collect();
-                        Ok(BranchCreationInfo {
-                            found: true,
-                            commit_sha: parts.first().map(|s| s.to_string()),
-                            commit_date: parts.get(1).map(|s| s.to_string()),
-                            commit_message: parts.get(2).map(|s| s.to_string()),
-                            is_root_commit: Some(true),
-                            error: None,
-                        })
+        if is_main_like {
+            // For main branches, get the root commit (first commit in the repository)
+            let root_result = git_repo.run_git(&["rev-list", "--max-parents=0", "HEAD"]);
+            match root_result {
+                Ok(output) => {
+                    let root_sha = output.lines().next().unwrap_or("").trim();
+                    if root_sha.is_empty() {
+                        return Ok(BranchCreationInfo {
+                            found: false,
+                            commit_sha: None,
+                            commit_date: None,
+                            commit_message: None,
+                            is_root_commit: None,
+                            error: Some("No root commit found".to_string()),
+                        });
                     }
-                    Err(e) => Ok(BranchCreationInfo {
-                        found: true,
-                        commit_sha: Some(root_sha.to_string()),
-                        commit_date: None,
-                        commit_message: None,
-                        is_root_commit: Some(true),
-                        error: Some(format!("Failed to get commit details: {}", e)),
-                    }),
-                }
-            }
-            Err(e) => Ok(BranchCreationInfo {
-                found: false,
-                commit_sha: None,
-                commit_date: None,
-                commit_message: None,
-                is_root_commit: None,
-                error: Some(format!("Failed to find root commit: {}", e)),
-            }),
-        }
-    } else {
-        // For feature branches, find the merge-base with main/master
-        let main_ref = find_main_ref(&git_repo);
-        let merge_base_result = git_repo.run_git(&["merge-base", &branch, &main_ref]);
 
-        match merge_base_result {
-            Ok(merge_base) => {
-                let merge_base_sha = merge_base.trim();
-                if merge_base_sha.is_empty() {
-                    return Ok(BranchCreationInfo {
-                        found: false,
-                        commit_sha: None,
-                        commit_date: None,
-                        commit_message: None,
-                        is_root_commit: None,
-                        error: Some("No merge-base found".to_string()),
-                    });
-                }
+                    let details_result =
+                        git_repo.run_git(&["log", "-1", "--format=%H%x1f%aI%x1f%s", root_sha]);
 
-                let first_commit_result = git_repo.run_git(&[
-                    "rev-list",
-                    "--ancestry-path",
-                    &format!("{}..{}", merge_base_sha, &branch),
-                    "--reverse",
-                ]);
-
-                let creation_sha = match first_commit_result {
-                    Ok(output) => {
-                        let first_line = output.lines().next().unwrap_or("").trim();
-                        if first_line.is_empty() {
-                            merge_base_sha.to_string()
-                        } else {
-                            first_line.to_string()
-                        }
-                    }
-                    Err(_) => merge_base_sha.to_string(),
-                };
-
-                let details_result = git_repo.run_git(&[
-                    "log",
-                    "-1",
-                    "--format=%H%x1f%aI%x1f%s",
-                    &creation_sha,
-                ]);
-
-                match details_result {
-                    Ok(details) => {
-                        let parts: Vec<&str> = details.trim().split('\x1f').collect();
-                        Ok(BranchCreationInfo {
-                            found: true,
-                            commit_sha: parts.first().map(|s| s.to_string()),
-                            commit_date: parts.get(1).map(|s| s.to_string()),
-                            commit_message: parts.get(2).map(|s| s.to_string()),
-                            is_root_commit: Some(false),
-                            error: None,
-                        })
-                    }
-                    Err(e) => Ok(BranchCreationInfo {
-                        found: true,
-                        commit_sha: Some(creation_sha),
-                        commit_date: None,
-                        commit_message: None,
-                        is_root_commit: Some(false),
-                        error: Some(format!("Failed to get commit details: {}", e)),
-                    }),
-                }
-            }
-            Err(e) => {
-                // Fall back to finding the oldest commit on this branch
-                let oldest_result = git_repo.run_git(&[
-                    "rev-list",
-                    "--max-parents=0",
-                    &branch,
-                ]);
-
-                match oldest_result {
-                    Ok(output) => {
-                        let oldest_sha = output.lines().next().unwrap_or("").trim();
-                        if oldest_sha.is_empty() {
-                            return Ok(BranchCreationInfo {
-                                found: false,
-                                commit_sha: None,
-                                commit_date: None,
-                                commit_message: None,
-                                is_root_commit: None,
-                                error: Some(format!("No merge-base with {}: {}", main_ref, e)),
-                            });
-                        }
-
-                        let details_result = git_repo.run_git(&[
-                            "log",
-                            "-1",
-                            "--format=%H%x1f%aI%x1f%s",
-                            oldest_sha,
-                        ]);
-
-                        match details_result {
-                            Ok(details) => {
-                                let parts: Vec<&str> = details.trim().split('\x1f').collect();
-                                Ok(BranchCreationInfo {
-                                    found: true,
-                                    commit_sha: parts.first().map(|s| s.to_string()),
-                                    commit_date: parts.get(1).map(|s| s.to_string()),
-                                    commit_message: parts.get(2).map(|s| s.to_string()),
-                                    is_root_commit: Some(true),
-                                    error: None,
-                                })
-                            }
-                            Err(_) => Ok(BranchCreationInfo {
+                    match details_result {
+                        Ok(details) => {
+                            let parts: Vec<&str> = details.trim().split('\x1f').collect();
+                            Ok(BranchCreationInfo {
                                 found: true,
-                                commit_sha: Some(oldest_sha.to_string()),
-                                commit_date: None,
-                                commit_message: None,
+                                commit_sha: parts.first().map(|s| s.to_string()),
+                                commit_date: parts.get(1).map(|s| s.to_string()),
+                                commit_message: parts.get(2).map(|s| s.to_string()),
                                 is_root_commit: Some(true),
                                 error: None,
-                            }),
+                            })
                         }
+                        Err(e) => Ok(BranchCreationInfo {
+                            found: true,
+                            commit_sha: Some(root_sha.to_string()),
+                            commit_date: None,
+                            commit_message: None,
+                            is_root_commit: Some(true),
+                            error: Some(format!("Failed to get commit details: {}", e)),
+                        }),
                     }
-                    Err(_) => Ok(BranchCreationInfo {
-                        found: false,
-                        commit_sha: None,
-                        commit_date: None,
-                        commit_message: None,
-                        is_root_commit: None,
-                        error: Some(format!("No merge-base with {}: {}", main_ref, e)),
-                    }),
+                }
+                Err(e) => Ok(BranchCreationInfo {
+                    found: false,
+                    commit_sha: None,
+                    commit_date: None,
+                    commit_message: None,
+                    is_root_commit: None,
+                    error: Some(format!("Failed to find root commit: {}", e)),
+                }),
+            }
+        } else {
+            // For feature branches, find the merge-base with main/master
+            let main_ref = find_main_ref(&git_repo);
+            let merge_base_result = git_repo.run_git(&["merge-base", &branch, &main_ref]);
+
+            match merge_base_result {
+                Ok(merge_base) => {
+                    let merge_base_sha = merge_base.trim();
+                    if merge_base_sha.is_empty() {
+                        return Ok(BranchCreationInfo {
+                            found: false,
+                            commit_sha: None,
+                            commit_date: None,
+                            commit_message: None,
+                            is_root_commit: None,
+                            error: Some("No merge-base found".to_string()),
+                        });
+                    }
+
+                    let first_commit_result = git_repo.run_git(&[
+                        "rev-list",
+                        "--ancestry-path",
+                        &format!("{}..{}", merge_base_sha, &branch),
+                        "--reverse",
+                    ]);
+
+                    let creation_sha = match first_commit_result {
+                        Ok(output) => {
+                            let first_line = output.lines().next().unwrap_or("").trim();
+                            if first_line.is_empty() {
+                                merge_base_sha.to_string()
+                            } else {
+                                first_line.to_string()
+                            }
+                        }
+                        Err(_) => merge_base_sha.to_string(),
+                    };
+
+                    let details_result =
+                        git_repo.run_git(&["log", "-1", "--format=%H%x1f%aI%x1f%s", &creation_sha]);
+
+                    match details_result {
+                        Ok(details) => {
+                            let parts: Vec<&str> = details.trim().split('\x1f').collect();
+                            Ok(BranchCreationInfo {
+                                found: true,
+                                commit_sha: parts.first().map(|s| s.to_string()),
+                                commit_date: parts.get(1).map(|s| s.to_string()),
+                                commit_message: parts.get(2).map(|s| s.to_string()),
+                                is_root_commit: Some(false),
+                                error: None,
+                            })
+                        }
+                        Err(e) => Ok(BranchCreationInfo {
+                            found: true,
+                            commit_sha: Some(creation_sha),
+                            commit_date: None,
+                            commit_message: None,
+                            is_root_commit: Some(false),
+                            error: Some(format!("Failed to get commit details: {}", e)),
+                        }),
+                    }
+                }
+                Err(e) => {
+                    // Fall back to finding the oldest commit on this branch
+                    let oldest_result = git_repo.run_git(&["rev-list", "--max-parents=0", &branch]);
+
+                    match oldest_result {
+                        Ok(output) => {
+                            let oldest_sha = output.lines().next().unwrap_or("").trim();
+                            if oldest_sha.is_empty() {
+                                return Ok(BranchCreationInfo {
+                                    found: false,
+                                    commit_sha: None,
+                                    commit_date: None,
+                                    commit_message: None,
+                                    is_root_commit: None,
+                                    error: Some(format!("No merge-base with {}: {}", main_ref, e)),
+                                });
+                            }
+
+                            let details_result = git_repo.run_git(&[
+                                "log",
+                                "-1",
+                                "--format=%H%x1f%aI%x1f%s",
+                                oldest_sha,
+                            ]);
+
+                            match details_result {
+                                Ok(details) => {
+                                    let parts: Vec<&str> = details.trim().split('\x1f').collect();
+                                    Ok(BranchCreationInfo {
+                                        found: true,
+                                        commit_sha: parts.first().map(|s| s.to_string()),
+                                        commit_date: parts.get(1).map(|s| s.to_string()),
+                                        commit_message: parts.get(2).map(|s| s.to_string()),
+                                        is_root_commit: Some(true),
+                                        error: None,
+                                    })
+                                }
+                                Err(_) => Ok(BranchCreationInfo {
+                                    found: true,
+                                    commit_sha: Some(oldest_sha.to_string()),
+                                    commit_date: None,
+                                    commit_message: None,
+                                    is_root_commit: Some(true),
+                                    error: None,
+                                }),
+                            }
+                        }
+                        Err(_) => Ok(BranchCreationInfo {
+                            found: false,
+                            commit_sha: None,
+                            commit_date: None,
+                            commit_message: None,
+                            is_root_commit: None,
+                            error: Some(format!("No merge-base with {}: {}", main_ref, e)),
+                        }),
+                    }
                 }
             }
         }
-    }
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?

@@ -300,7 +300,10 @@ pub async fn get_file_creation_batch(
             return Err((
                 StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
-                    error: format!("invalid paths parameter (expected JSON array of strings): {}", e),
+                    error: format!(
+                        "invalid paths parameter (expected JSON array of strings): {}",
+                        e
+                    ),
                 }),
             ))
         }

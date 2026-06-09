@@ -122,8 +122,14 @@ function stopStatusPolling() {
 }
 
 // Clean up polling on page unload
-window.addEventListener("beforeunload", () => {
-  stopStatusPolling();
+window.gpEvents.bind({
+  owner: "view-mode",
+  key: "beforeunload-stop-status-polling",
+  target: window,
+  type: "beforeunload",
+  handler: () => {
+    stopStatusPolling();
+  }
 });
 
 // Export functions to window

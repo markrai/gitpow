@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "smoke:frontend": "cargo build --bin gitpow-rust && playwright test",
-    "smoke:lint": "cargo fmt --all -- --check && cargo test --test services_integration --test api_tauri_parity"
+    "smoke:lint": "node scripts/check-window-globals.mjs && cargo fmt --all -- --check && cargo test --test services_integration --test api_tauri_parity"
   },
   "dependencies": {
     "@tauri-apps/api": "^2"

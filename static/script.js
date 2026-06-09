@@ -2957,7 +2957,7 @@ async function loadImageDiff() {
 
 // Repos Root (Projects Folder) modal handlers live in static/js/repos-root.js.
 
-repoSelect.addEventListener("change", async e => {
+async function handleRepoSelectChange(e) {
   const newRepo = e.target.value || null;
 
   // --- Hard reset commit/cache state on repo change --------------------
@@ -3019,9 +3019,17 @@ repoSelect.addEventListener("change", async e => {
 
   // Load branches (which will also call loadCommits())
   if (state.currentRepo) await loadBranches();
+}
+
+window.gpEvents.bind({
+  owner: "script",
+  key: "repo-select-change",
+  target: repoSelect,
+  type: "change",
+  handler: handleRepoSelectChange
 });
 
-branchSelect.addEventListener("change", async e => {
+async function handleBranchSelectChange(e) {
   // Clear detached HEAD state when selecting a branch
   if (state.detachedHeadCommit) {
     state.detachedHeadCommit = null;
@@ -3061,6 +3069,14 @@ branchSelect.addEventListener("change", async e => {
     // for the new branch first. It will handle cache invalidation if needed.
     await loadCommits();
   }
+}
+
+window.gpEvents.bind({
+  owner: "script",
+  key: "branch-select-change",
+  target: branchSelect,
+  type: "change",
+  handler: handleBranchSelectChange
 });
 
 // Fetch button functionality moved to js/git-ops.js
@@ -3069,7 +3085,7 @@ branchSelect.addEventListener("change", async e => {
 let filterDebounceTimer = null;
 const FILTER_DEBOUNCE_MS = 150; // 150ms debounce for typing
 
-searchInput.addEventListener("input", () => {
+function handleSearchInput() {
   if (filterDebounceTimer) {
     clearTimeout(filterDebounceTimer);
   }
@@ -3077,6 +3093,14 @@ searchInput.addEventListener("input", () => {
     filterDebounceTimer = null;
     applyCommitFilter();
   }, FILTER_DEBOUNCE_MS);
+}
+
+window.gpEvents.bind({
+  owner: "script",
+  key: "search-input",
+  target: searchInput,
+  type: "input",
+  handler: handleSearchInput
 });
 
 // Settings modal handlers
@@ -3605,10 +3629,9 @@ colorInputIds.forEach(id => {
 
 // View mode toggle - cycles through: Activity → Vertical Map → Horizontal Map → Activity
 const viewModeToggle = document.getElementById("viewModeToggle");
-if (viewModeToggle) {
-  viewModeToggle.addEventListener("click", async () => {
-    // Remove focus immediately after click/tap
-    viewModeToggle.blur();
+async function handleViewModeToggleClick() {
+  // Remove focus immediately after click/tap
+  viewModeToggle.blur();
     
     const currentMode = state.historyMode || "activity";
     let nextMode;
@@ -4010,6 +4033,15 @@ if (viewModeToggle) {
         renderCommitList();
       }
     }
+}
+
+if (viewModeToggle) {
+  window.gpEvents.bind({
+    owner: "script",
+    key: "view-mode-toggle-click",
+    target: viewModeToggle,
+    type: "click",
+    handler: handleViewModeToggleClick
   });
 }
 
@@ -4018,140 +4050,8 @@ if (viewModeToggle) {
 
 // Resize handles code moved to js/resize-handles.js
 
-// Note: All staging functions (loadStatus, renderStatusLists, loadFileDiff, renderDiff, 
-// stageHunk, unstageHunk, updateCommitButton) are now in staging.js
-// Functions are exported to window and available globally
-
-// Add event listeners for both subject and description fields
-if (commitMessageSubject) {
-  commitMessageSubject.addEventListener("input", updateCommitButton);
-  commitMessageSubject.addEventListener("keydown", (e) => {
-    // Allow Enter to move to description, but prevent form submission
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (commitMessageDescription) {
-        commitMessageDescription.focus();
-      }
-    }
-  });
-}
-
-if (commitMessageDescription) {
-  commitMessageDescription.addEventListener("input", updateCommitButton);
-}
-
-// Legacy support for old commitMessage field
-if (commitMessage) {
-  commitMessage.addEventListener("input", updateCommitButton);
-}
-
-// Note: isRefreshingCommits and refreshCommitsAfterCommit are now in staging.js
-// Functions are exported to window and available globally
-
-commitButton.addEventListener("click", async () => {
-  // Get commit message from subject and description fields
-  let commitMsg = "";
-  if (commitMessageSubject && commitMessageDescription) {
-    // New two-part format: subject + description
-    const subject = commitMessageSubject.value.trim();
-    const description = commitMessageDescription.value.trim();
-    
-    if (!subject) return; // Subject is required
-    
-    if (description) {
-      // Combine subject and description with blank line separator (Git convention)
-      commitMsg = subject + "\n\n" + description;
-    } else {
-      commitMsg = subject;
-    }
-  } else if (commitMessage) {
-    // Legacy single field support
-    commitMsg = commitMessage.value.trim();
-    if (!commitMsg) return;
-  } else {
-    return; // No commit message fields available
-  }
-  
-  setStatus("Committing...");
-  try {
-    await api("/api/repos/" + encodeURIComponent(state.currentRepo) + "/commit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: commitMsg })
-    });
-    
-    // Clear both fields after successful commit
-    if (commitMessageSubject) commitMessageSubject.value = "";
-    if (commitMessageDescription) commitMessageDescription.value = "";
-    if (commitMessage) commitMessage.value = ""; // Legacy support
-    
-    state.stagedHunks.clear();
-    await loadStatus();
-    await refreshCommitsAfterCommit();
-    await checkConflicts();
-    setStatus("Commit successful");
-  } catch (e) {
-    setStatus(e.message, true);
-  }
-});
-
-
-// Global key handling: Enhanced keyboard navigation
-window.addEventListener("keydown", (e) => {
-  // Escape to close modals - handle this first so it works even when typing in inputs
-  if (e.key === "Escape") {
-    if (settingsModal && settingsModal.style.display !== "none") {
-      e.preventDefault();
-      settingsModal.style.display = "none";
-      return;
-    } else if (reposRootModal && reposRootModal.style.display !== "none") {
-      e.preventDefault();
-      reposRootModal.style.display = "none";
-      return;
-    }
-  }
-
-  // Don't intercept if user is typing in an input/textarea
-  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable) {
-    return;
-  }
-
-  // Check if graph view is active - if so, let graph handle arrow keys
-  const graphContainer = document.getElementById("graphContainer");
-  const isGraphViewActive = graphContainer && graphContainer.style.display !== "none" && isGraphMode();
-  
-  // Commit navigation (only when graph view is not active)
-  if (!isGraphViewActive) {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      const delta = state.invertUpDown ? -1 : 1;
-      moveCommitSelection(delta);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      const delta = state.invertUpDown ? 1 : -1;
-      moveCommitSelection(delta);
-    } else if (e.key === "PageDown") {
-      e.preventDefault();
-      const dir = state.invertUpDown ? -1 : 1;
-      pageCommitSelection(dir);
-    } else if (e.key === "PageUp") {
-      e.preventDefault();
-      const dir = state.invertUpDown ? 1 : -1;
-      pageCommitSelection(dir);
-    }
-  }
-  // Commit Canvas is now integrated into diffPanel - no toggle needed
-  // Tab navigation enhancement - ensure focus is visible
-  else if (e.key === "Tab") {
-    // Ensure focus outline is visible
-    document.body.classList.add("keyboard-navigation");
-  }
-});
-
-// Remove keyboard navigation class on mouse use
-document.addEventListener("mousedown", () => {
-  document.body.classList.remove("keyboard-navigation");
-});
+// Staging and commit-form singleton handlers live in static/js/staging.js.
+// Global keyboard/mouse singleton handlers live in static/js/keyboard.js.
 
 // 3D Timeline Visualization - moved to js/timeline3d.js
 

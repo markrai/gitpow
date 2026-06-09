@@ -379,90 +379,94 @@ async function refreshCommitsAfterCommit() {
   const commitMessageSubject = document.getElementById("commitMessageSubject");
   const commitMessageDescription = document.getElementById("commitMessageDescription");
   const commitMessage = document.getElementById("commitMessage");
+  const bind = (key, target, type, handler) => {
+    if (!target) return;
+    window.gpEvents.bind({
+      owner: "staging",
+      key,
+      target,
+      type,
+      handler
+    });
+  };
+
+  function handleCommitSubjectKeydown(e) {
+    // Allow Enter to move to description, but prevent form submission
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (commitMessageDescription) {
+        commitMessageDescription.focus();
+      }
+    }
+  }
+
+  async function handleCommitClick() {
+    // Get commit message from subject and description fields
+    let commitMsg = "";
+    if (commitMessageSubject && commitMessageDescription) {
+      // New two-part format: subject + description
+      const subject = commitMessageSubject.value.trim();
+      const description = commitMessageDescription.value.trim();
+
+      if (!subject) return; // Subject is required
+
+      if (description) {
+        // Combine subject and description with blank line separator (Git convention)
+        commitMsg = subject + "\n\n" + description;
+      } else {
+        commitMsg = subject;
+      }
+    } else if (commitMessage) {
+      // Legacy single field support
+      commitMsg = commitMessage.value.trim();
+      if (!commitMsg) return;
+    } else {
+      return; // No commit message fields available
+    }
+
+    if (window.setStatus) {
+      window.setStatus("Committing...");
+    }
+    try {
+      if (window.api) {
+        await window.api("/api/repos/" + encodeURIComponent(window.state.currentRepo) + "/commit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: commitMsg })
+        });
+
+        // Clear both fields after successful commit
+        if (commitMessageSubject) commitMessageSubject.value = "";
+        if (commitMessageDescription) commitMessageDescription.value = "";
+        if (commitMessage) commitMessage.value = ""; // Legacy support
+
+        if (window.state.stagedHunks) {
+          window.state.stagedHunks.clear();
+        }
+        await loadStatus();
+        await refreshCommitsAfterCommit();
+        if (window.checkConflicts) {
+          await window.checkConflicts();
+        }
+        if (window.setStatus) {
+          window.setStatus("Commit successful");
+        }
+      }
+    } catch (e) {
+      if (window.setStatus) {
+        window.setStatus(e.message, true);
+      }
+    }
+  }
 
   // Add event listeners for both subject and description fields
-  if (commitMessageSubject) {
-    commitMessageSubject.addEventListener("input", updateCommitButton);
-    commitMessageSubject.addEventListener("keydown", (e) => {
-      // Allow Enter to move to description, but prevent form submission
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        if (commitMessageDescription) {
-          commitMessageDescription.focus();
-        }
-      }
-    });
-  }
-
-  if (commitMessageDescription) {
-    commitMessageDescription.addEventListener("input", updateCommitButton);
-  }
+  bind("commit-message-subject-input", commitMessageSubject, "input", updateCommitButton);
+  bind("commit-message-subject-keydown", commitMessageSubject, "keydown", handleCommitSubjectKeydown);
+  bind("commit-message-description-input", commitMessageDescription, "input", updateCommitButton);
 
   // Legacy support for old commitMessage field
-  if (commitMessage) {
-    commitMessage.addEventListener("input", updateCommitButton);
-  }
-
-  if (commitButton) {
-    commitButton.addEventListener("click", async () => {
-      // Get commit message from subject and description fields
-      let commitMsg = "";
-      if (commitMessageSubject && commitMessageDescription) {
-        // New two-part format: subject + description
-        const subject = commitMessageSubject.value.trim();
-        const description = commitMessageDescription.value.trim();
-        
-        if (!subject) return; // Subject is required
-        
-        if (description) {
-          // Combine subject and description with blank line separator (Git convention)
-          commitMsg = subject + "\n\n" + description;
-        } else {
-          commitMsg = subject;
-        }
-      } else if (commitMessage) {
-        // Legacy single field support
-        commitMsg = commitMessage.value.trim();
-        if (!commitMsg) return;
-      } else {
-        return; // No commit message fields available
-      }
-      
-      if (window.setStatus) {
-        window.setStatus("Committing...");
-      }
-      try {
-        if (window.api) {
-          await window.api("/api/repos/" + encodeURIComponent(window.state.currentRepo) + "/commit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: commitMsg })
-          });
-          
-          // Clear both fields after successful commit
-          if (commitMessageSubject) commitMessageSubject.value = "";
-          if (commitMessageDescription) commitMessageDescription.value = "";
-          if (commitMessage) commitMessage.value = ""; // Legacy support
-          
-          if (window.state.stagedHunks) {
-            window.state.stagedHunks.clear();
-          }
-          await loadStatus();
-          await refreshCommitsAfterCommit();
-          if (window.checkConflicts) {
-            await window.checkConflicts();
-          }
-          if (window.setStatus) {
-            window.setStatus("Commit successful");
-          }
-        }
-      } catch (e) {
-        if (window.setStatus) {
-          window.setStatus(e.message, true);
-        }
-      }
-    });
-  }
+  bind("legacy-commit-message-input", commitMessage, "input", updateCommitButton);
+  bind("commit-button-click", commitButton, "click", handleCommitClick);
 })();
 
 // Export functions to window

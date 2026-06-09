@@ -5,7 +5,7 @@
  */
 
 // Global key handling: Enhanced keyboard navigation
-window.addEventListener("keydown", (e) => {
+function handleGlobalKeydown(e) {
   // Escape to close modals - handle this first so it works even when typing in inputs
   if (e.key === "Escape") {
     const settingsModal = document.getElementById("settingsModal");
@@ -65,9 +65,25 @@ window.addEventListener("keydown", (e) => {
     // Ensure focus outline is visible
     document.body.classList.add("keyboard-navigation");
   }
-});
+}
 
 // Remove keyboard navigation class on mouse use
-document.addEventListener("mousedown", () => {
+function handleGlobalMousedown() {
   document.body.classList.remove("keyboard-navigation");
+}
+
+window.gpEvents.bind({
+  owner: "keyboard",
+  key: "global-keydown",
+  target: window,
+  type: "keydown",
+  handler: handleGlobalKeydown
+});
+
+window.gpEvents.bind({
+  owner: "keyboard",
+  key: "global-mousedown",
+  target: document,
+  type: "mousedown",
+  handler: handleGlobalMousedown
 });

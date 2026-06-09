@@ -27,6 +27,11 @@ jobs:
         with:
           components: rustfmt
 
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Cache cargo dependencies
         uses: actions/cache@v4
         with:
@@ -42,6 +47,9 @@ jobs:
 
       - name: Check formatting
         run: cargo fmt --all -- --check
+
+      - name: Check reviewed frontend globals
+        run: node scripts/check-window-globals.mjs
 
       - name: Run smoke tests
         run: cargo test --test services_integration --test api_tauri_parity

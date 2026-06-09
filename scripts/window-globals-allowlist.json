@@ -1,0 +1,300 @@
+{
+  "groups": [
+    {
+      "owner": "src-tauri/build.rs/static/libraries.js",
+      "reason": "Generated dependency inventory consumed by the About/settings UI.",
+      "names": ["EXTERNAL_LIBRARIES"]
+    },
+    {
+      "owner": "static/js/event-registry.js",
+      "reason": "Internal Phase 1 singleton listener registry used by classic scripts.",
+      "names": ["gpEvents"]
+    },
+    {
+      "owner": "static/js/storage-keys.js",
+      "reason": "Central storage shim while legacy classic scripts migrate off direct localStorage calls.",
+      "names": ["gpStorage"]
+    },
+    {
+      "owner": "static/js/api.js",
+      "reason": "Transport facade shared by existing classic script modules.",
+      "names": ["api"]
+    },
+    {
+      "owner": "static/js/cache.js",
+      "reason": "IndexedDB cache facade shared by existing classic script modules.",
+      "names": ["gitCache"]
+    },
+    {
+      "owner": "static/js/loading-progress.js",
+      "reason": "Startup progress UI used by the remaining bootstrap code.",
+      "names": ["loadingProgress"]
+    },
+    {
+      "owner": "static/js/utils.js",
+      "reason": "Formatting and display helpers used across classic script modules.",
+      "names": [
+        "fileAccent",
+        "formatBytes",
+        "formatHumanDate",
+        "formatMonthHeader",
+        "formatRelativeTime",
+        "getAvatarUrl",
+        "getCacheUsage",
+        "getGitHubUsername",
+        "getMemoryUsage",
+        "getMonthKey",
+        "hashColor",
+        "hexToRgb",
+        "isImageFile",
+        "normalizeWindowsPath"
+      ]
+    },
+    {
+      "owner": "static/js/state.js",
+      "reason": "Shared mutable UI state and graph/file tuning constants for the classic frontend.",
+      "names": [
+        "DEFAULT_GLOBAL_COMMIT_CAP",
+        "DEFAULT_MAX_BRANCHES_FOR_ALL",
+        "DEFAULT_SEEK_DEPTH_PER_BRANCH",
+        "FILE_CREATION_BATCH_SIZE",
+        "GRAPH_BRANCH_HISTORY_LIMIT",
+        "GRAPH_VIEW_MAX_BRANCHES_FOR_ALL",
+        "GRAPH_VIEW_MAX_BRANCHES_PARALLEL",
+        "GRAPH_VIEW_MAX_COMMITS",
+        "GRAPH_VIEW_MIN_PER_BRANCH",
+        "MAX_CONCURRENT_FILE_REQUESTS",
+        "applyColorSettings",
+        "colorSettings",
+        "getBranchesForAllGraphMode",
+        "getGlobalCommitCap",
+        "getMaxBranchesForAll",
+        "getSeekDepthPerBranch",
+        "parseCacheKey",
+        "state"
+      ]
+    },
+    {
+      "owner": "static/js/ui.js",
+      "reason": "Shared status, repos-root, and display helpers used before UI ownership is fully split.",
+      "names": [
+        "closeReposRootModal",
+        "getStoredReposRoot",
+        "lastStatusUpdateTime",
+        "normalizePathForDisplay",
+        "openReposRootModal",
+        "setFloatingStatusMessage",
+        "setStatus",
+        "setStatusMessage",
+        "showGraphLimitNotification"
+      ]
+    },
+    {
+      "owner": "static/js/dom-elements.js",
+      "reason": "Cached DOM handles retained for load-order compatibility during incremental extraction.",
+      "names": [
+        "branchLabelEl",
+        "branchSelect",
+        "commitButton",
+        "commitCountEl",
+        "commitForm",
+        "commitList",
+        "commitMessage",
+        "commitMessageDescription",
+        "commitMessageSubject",
+        "conflictBase",
+        "conflictButtons",
+        "conflictCenter",
+        "conflictFilesList",
+        "conflictMine",
+        "conflictProgress",
+        "conflictResult",
+        "conflictTheirs",
+        "contextMenu",
+        "contextMenuCheckoutCommit",
+        "contextMenuCopyCommitId",
+        "contextMenuOpenExplorer",
+        "contextMenuViewGitHub",
+        "diffSection",
+        "diffSectionToggle",
+        "diffView",
+        "exitDetachedHeadClose",
+        "exitDetachedHeadModal",
+        "exitDetachedHeadNo",
+        "exitDetachedHeadYes",
+        "fileList",
+        "repoSelect",
+        "reposRootBrowseButton",
+        "reposRootButton",
+        "reposRootCancelButton",
+        "reposRootCloseButton",
+        "reposRootCurrent",
+        "reposRootModal",
+        "reposRootPathInput",
+        "reposRootSaveButton",
+        "reposRootUseDefaultButton",
+        "searchInput",
+        "settingsButton",
+        "settingsClose",
+        "settingsModal",
+        "stagedCommitSection",
+        "stagedCommitSectionToggle",
+        "stagedCount",
+        "stagedDiff",
+        "stagedList",
+        "stagedSection",
+        "statusEl",
+        "unstagedCount",
+        "unstagedDiff",
+        "unstagedList",
+        "unstagedSection"
+      ]
+    },
+    {
+      "owner": "static/js/searchable-dropdown.js",
+      "reason": "Reusable dropdown constructor used by bootstrap code.",
+      "names": ["createSearchableDropdown"]
+    },
+    {
+      "owner": "static/js/helpers.js",
+      "reason": "Collapse and graph display helpers shared by script.js during extraction.",
+      "names": [
+        "getCommitFadeClass",
+        "getGraphSymbol",
+        "initCollapsibleSections",
+        "loadCollapseState",
+        "normalizePath",
+        "toggleCollapse"
+      ]
+    },
+    {
+      "owner": "static/js/filters.js",
+      "reason": "Activity branch and commit filtering helpers used by script.js and graph transitions.",
+      "names": [
+        "applyActiveBranchFilter",
+        "applyCommitFilter",
+        "isBranchActive",
+        "isCommitOnActiveBranch",
+        "markCommitsActiveStatus",
+        "updateCommitCountDisplay"
+      ]
+    },
+    {
+      "owner": "static/js/view-mode.js",
+      "reason": "Activity/graph mode state and polling lifecycle helpers.",
+      "names": [
+        "isGraphMode",
+        "startStatusPolling",
+        "statusPollInterval",
+        "stopStatusPolling",
+        "switchViewMode"
+      ]
+    },
+    {
+      "owner": "static/js/detached-head.js",
+      "reason": "Detached HEAD modal and branch recovery flow used by commit navigation.",
+      "names": [
+        "closeExitDetachedHeadModal",
+        "showExitDetachedHeadModal",
+        "updateDetachedHeadStatus"
+      ]
+    },
+    {
+      "owner": "static/js/context-menu.js",
+      "reason": "Shared context menu entry points for commit/file UI surfaces.",
+      "names": ["hideContextMenu", "showContextMenu"]
+    },
+    {
+      "owner": "static/js/file-navigation.js",
+      "reason": "Commit file navigation and file creation metadata helpers still called from script.js.",
+      "names": [
+        "loadFileCreationInfo",
+        "loadFileCreationInfoBatch",
+        "processFileCreationQueue",
+        "renderFileCreationInfo",
+        "updateActiveFileState"
+      ]
+    },
+    {
+      "owner": "static/js/commit-navigation.js",
+      "reason": "Commit navigation/details helpers still called from script.js and graph.js.",
+      "names": [
+        "getCommitSequenceNumber",
+        "highlightCommitBySha",
+        "loadFilesForCommitDebounced",
+        "moveCommitSelection",
+        "pageCommitSelection",
+        "switchToActivityView",
+        "updateActiveCommitState",
+        "updateCommitDetails"
+      ]
+    },
+    {
+      "owner": "static/js/staging.js",
+      "reason": "Staging panel, diff, commit-form, and commit refresh helpers.",
+      "names": [
+        "loadFileDiff",
+        "loadStatus",
+        "refreshCommitsAfterCommit",
+        "renderDiff",
+        "renderStatusLists",
+        "stageHunk",
+        "unstageHunk",
+        "updateCommitButton"
+      ]
+    },
+    {
+      "owner": "static/js/conflicts.js",
+      "reason": "Merge conflict workflow entry points used by post-commit and conflict UI flows.",
+      "names": [
+        "checkConflicts",
+        "loadConflictFile",
+        "renderConflictButtons",
+        "renderConflictFiles",
+        "resolveConflict",
+        "saveConflictResolution",
+        "updateConflictProgress"
+      ]
+    },
+    {
+      "owner": "static/js/timeline3d.js",
+      "reason": "3D timeline compatibility exports retained while graph/timeline code remains global.",
+      "names": [
+        "calculateStackedPosition",
+        "init3D",
+        "optimizeHelixPerformance",
+        "render3DTimeline",
+        "setCameraPreset"
+      ]
+    },
+    {
+      "owner": "static/js/resize-handles.js",
+      "reason": "Layout resize lifecycle functions used by remaining bootstrap code.",
+      "names": ["initResizeHandles", "updateResizeHandlePositions"]
+    },
+    {
+      "owner": "static/js/git-ops.js",
+      "reason": "Toolbar Git operation handlers and status helpers.",
+      "names": [
+        "doGitFetch",
+        "doGitPull",
+        "doGitPush",
+        "doGitStash",
+        "doGitStashPop",
+        "fetchBranchStatus",
+        "initGitOps",
+        "setGitOpsStatus"
+      ]
+    },
+    {
+      "owner": "static/js/repos-root.js",
+      "reason": "Late-loaded Projects Folder modal compatibility hook.",
+      "names": ["applyReposRootFromInput"]
+    },
+    {
+      "owner": "static/graph.js",
+      "reason": "Graph mode state and renderer facade consumed by Activity view code.",
+      "names": ["graphState", "graphView"]
+    }
+  ]
+}

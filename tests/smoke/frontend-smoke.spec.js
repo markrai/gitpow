@@ -2,6 +2,10 @@ import { test, expect } from "@playwright/test";
 
 const SMOKE_BRANCH = process.env.GITPOW_SMOKE_BRANCH || "feature/smoke";
 const SMOKE_REPO_NAME = process.env.GITPOW_SMOKE_REPO_NAME || "gitpow-smoke-repo";
+const SMOKE_REPO_ID = process.env.GITPOW_SMOKE_REPO_ID || "";
+const SMOKE_ALT_REPO_ID = process.env.GITPOW_SMOKE_ALT_REPO_ID || "";
+const SMOKE_ALT_COMMIT_MESSAGE =
+  process.env.GITPOW_SMOKE_ALT_COMMIT_MESSAGE || "alternate smoke commit";
 
 /** Patterns for console noise that is expected when running over HTTP, not Tauri. */
 const IGNORED_CONSOLE_PATTERNS = [
@@ -29,10 +33,13 @@ async function bootApp(page) {
     consoleErrors.push(err.message);
   });
 
-  await page.addInitScript(() => {
+  await page.addInitScript((repoId) => {
     window.localStorage.clear();
     window.localStorage.setItem("gitpow:reposRootOnboarded", "true");
-  });
+    if (repoId) {
+      window.localStorage.setItem("gitpow:lastRepoId", repoId);
+    }
+  }, SMOKE_REPO_ID);
 
   await page.goto("/");
 
@@ -81,6 +88,17 @@ async function selectBranch(page, branch) {
     .toBe(branch);
 }
 
+async function selectRepo(page, repoId) {
+  await page.locator("#repoSelect").evaluate((select, value) => {
+    select.value = value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  }, repoId);
+
+  await expect
+    .poll(() => page.locator("#repoSelect").evaluate((select) => select.value))
+    .toBe(repoId);
+}
+
 test.describe("Frontend smoke", () => {
   test("loads app shell and deterministic fixture repo", async ({ page }) => {
     const app = await bootApp(page);
@@ -96,6 +114,29 @@ test.describe("Frontend smoke", () => {
     await selectBranch(page, SMOKE_BRANCH);
 
     await expect(page.locator("#commitList")).toContainText("feature smoke commit");
+    app.assertNoConsoleErrors();
+  });
+
+  test("switches repositories without stale branch or staging data", async ({ page }) => {
+    const app = await bootApp(page);
+
+    await selectBranch(page, SMOKE_BRANCH);
+    await page.evaluate(() => window.loadStatus());
+    await expect(page.locator("#unstagedList")).toContainText("dirty-file.txt");
+
+    await selectRepo(page, SMOKE_ALT_REPO_ID);
+
+    await expect(page.locator("#commitList")).toContainText(SMOKE_ALT_COMMIT_MESSAGE);
+    await expect(page.locator("#unstagedList")).not.toContainText("dirty-file.txt");
+    await expect(page.locator("#unstagedCount")).toHaveText("0");
+    await expect
+      .poll(() =>
+        page.locator("#branchSelect").evaluate((select) =>
+          Array.from(select.options).map((option) => option.value)
+        )
+      )
+      .not.toContain(SMOKE_BRANCH);
+
     app.assertNoConsoleErrors();
   });
 
@@ -136,13 +177,15 @@ test.describe("Frontend smoke", () => {
 
     const counts = await page.evaluate(() => ({
       keyboard: window.gpEvents.count("keyboard"),
+      loading: window.gpEvents.count("loading"),
       script: window.gpEvents.count("script"),
       staging: window.gpEvents.count("staging"),
       viewMode: window.gpEvents.count("view-mode"),
     }));
 
     expect(counts.keyboard).toBe(2); // window keydown + document mousedown
-    expect(counts.script).toBe(4); // repo, branch, search, view-mode toggle
+    expect(counts.loading).toBe(2); // repo + branch select
+    expect(counts.script).toBe(2); // search + view-mode toggle
     expect(counts.staging).toBe(4); // commit button + active message fields
     expect(counts.viewMode).toBe(1); // beforeunload cleanup
 

@@ -287,6 +287,11 @@
       ]
     },
     {
+      "owner": "static/js/controllers/loading.js",
+      "reason": "Repository, branch, and commit loading compatibility exports used by existing classic modules.",
+      "names": ["loadRepos", "loadBranches", "loadCommits"]
+    },
+    {
       "owner": "static/js/repos-root.js",
       "reason": "Late-loaded Projects Folder modal compatibility hook.",
       "names": ["applyReposRootFromInput"]

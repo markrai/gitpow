@@ -3,6 +3,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import {
   ensureSmokeReposRoot,
+  SMOKE_ALT_COMMIT_MESSAGE,
+  SMOKE_ALT_REPO_NAME,
   SMOKE_BRANCH,
   SMOKE_REPO_NAME
 } from "./tests/smoke/support/git-fixture.js";
@@ -13,6 +15,10 @@ const reposRoot = process.env.REPOS_ROOT || ensureSmokeReposRoot();
 process.env.REPOS_ROOT = reposRoot;
 process.env.GITPOW_SMOKE_BRANCH = process.env.GITPOW_SMOKE_BRANCH || SMOKE_BRANCH;
 process.env.GITPOW_SMOKE_REPO_NAME = process.env.GITPOW_SMOKE_REPO_NAME || SMOKE_REPO_NAME;
+process.env.GITPOW_SMOKE_REPO_ID = process.env.GITPOW_SMOKE_REPO_ID || path.join(reposRoot, SMOKE_REPO_NAME);
+process.env.GITPOW_SMOKE_ALT_REPO_NAME = process.env.GITPOW_SMOKE_ALT_REPO_NAME || SMOKE_ALT_REPO_NAME;
+process.env.GITPOW_SMOKE_ALT_REPO_ID = process.env.GITPOW_SMOKE_ALT_REPO_ID || path.join(reposRoot, SMOKE_ALT_REPO_NAME);
+process.env.GITPOW_SMOKE_ALT_COMMIT_MESSAGE = process.env.GITPOW_SMOKE_ALT_COMMIT_MESSAGE || SMOKE_ALT_COMMIT_MESSAGE;
 const serverBin =
   process.platform === "win32"
     ? path.join(rootDir, "target", "debug", "gitpow-rust.exe")

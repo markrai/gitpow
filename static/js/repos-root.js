@@ -7,7 +7,7 @@
  *   - window.normalizePathForDisplay (ui.js)
  *   - window.openReposRootModal / window.closeReposRootModal (ui.js)
  *   - window.setStatus (ui.js)
- *   - window.loadRepos (script.js) – resolved lazily at call time
+ *   - window.loadRepos (controllers/loading.js) – resolved lazily at call time
  *   - window.api (api.js)
  *   - window.reposRoot* DOM element handles (dom-elements.js)
  */

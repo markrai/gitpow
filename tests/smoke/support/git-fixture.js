@@ -5,6 +5,8 @@ import { execFileSync } from "node:child_process";
 
 export const SMOKE_REPO_NAME = "gitpow-smoke-repo";
 export const SMOKE_BRANCH = "feature/smoke";
+export const SMOKE_ALT_REPO_NAME = "gitpow-smoke-alt-repo";
+export const SMOKE_ALT_COMMIT_MESSAGE = "alternate smoke commit";
 
 function git(repoPath, args) {
   execFileSync("git", args, {
@@ -50,6 +52,16 @@ export function ensureSmokeReposRoot() {
   git(repoPath, ["commit", "-m", "feature smoke commit"]);
 
   writeFile(repoPath, "dirty-file.txt", "uncommitted smoke change\n");
+
+  const altRepoPath = path.join(reposRoot, SMOKE_ALT_REPO_NAME);
+  fs.mkdirSync(altRepoPath, { recursive: true });
+  git(altRepoPath, ["init"]);
+  git(altRepoPath, ["checkout", "-B", "main"]);
+  git(altRepoPath, ["config", "user.name", "GitPow Smoke"]);
+  git(altRepoPath, ["config", "user.email", "smoke@gitpow.local"]);
+  writeFile(altRepoPath, "ALT.md", "# Alternate smoke fixture\n");
+  git(altRepoPath, ["add", "ALT.md"]);
+  git(altRepoPath, ["commit", "-m", SMOKE_ALT_COMMIT_MESSAGE]);
 
   return reposRoot;
 }
